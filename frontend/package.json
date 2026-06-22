@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:know-hub": "VITE_PRODUCT_MODE=know-hub VITE_KNOW_HUB_BACKEND_BASE_URL=http://127.0.0.1:8000 vite",
     "build": "vite build",
+    "build:know-hub": "VITE_PRODUCT_MODE=know-hub VITE_KNOW_HUB_BACKEND_BASE_URL=http://127.0.0.1:8000 vite build",
     "build-with-types": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
