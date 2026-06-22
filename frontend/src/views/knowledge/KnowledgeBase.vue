@@ -59,6 +59,10 @@ import { formatStringDate } from '@/utils';
 import { formatFileSize } from '@/utils/files';
 import { useMarqueeSelect } from '@/hooks/useMarqueeSelect';
 import type { ParserEngineInfo } from '@/api/system';
+import {
+  isKnowHubProductMode,
+} from '@/product/knowHub';
+import { filterKnowHubUploadFileTypes } from '@/product/knowHubUpload';
 const route = useRoute();
 const { t } = useI18n();
 const kbId = computed(() => (route.params as any).kbId as string || '');
@@ -193,8 +197,14 @@ const supportedFileTypes = computed<Set<string>>(() => {
   return available
 })
 
+const productSupportedFileTypes = computed(() =>
+  isKnowHubProductMode()
+    ? new Set(filterKnowHubUploadFileTypes(supportedFileTypes.value))
+    : supportedFileTypes.value
+)
+
 const acceptFileTypes = computed(() =>
-  [...supportedFileTypes.value].map(t => '.' + t).join(',')
+  [...productSupportedFileTypes.value].map(t => '.' + t).join(',')
 )
 
 const unsupportedFileTypes = computed<string[]>(() => {
@@ -1585,7 +1595,7 @@ const openUploadConfirmDialog = async (files: File[], urls: string[] = []) => {
       files,
       urls,
       acceptFileTypes: acceptFileTypes.value,
-      supportedFileTypes: [...supportedFileTypes.value],
+      supportedFileTypes: [...productSupportedFileTypes.value],
     });
     await handleUploadConfirmResult(result);
   } catch {
@@ -2240,7 +2250,7 @@ async function createNewSession(value: string): Promise<void> {
                   <KbUploadSourceDropdown
                     ref="uploadSourceRef"
                     :accept-file-types="acceptFileTypes"
-                    :supported-file-types="[...supportedFileTypes]"
+                    :supported-file-types="[...productSupportedFileTypes]"
                     include-manual
                     trigger-icon="file-add"
                     trigger-class="content-bar-icon-btn"

@@ -2,6 +2,14 @@
 import { ref, computed } from 'vue';
 import { MessagePlugin } from 'tdesign-vue-next';
 import { useI18n } from 'vue-i18n';
+import {
+  isKnowHubProductMode,
+} from '@/product/knowHub';
+import {
+  filterKnowHubUploadFileTypes,
+  isKnowHubUploadFileTypeAllowed,
+  KNOW_HUB_PPT_UNSUPPORTED_MESSAGE,
+} from '@/product/knowHubUpload';
 
 const { t } = useI18n();
 
@@ -29,7 +37,7 @@ const attachments = ref<AttachmentFile[]>([]);
 const fileInputRef = ref<HTMLInputElement>();
 
 // Supported file types (matching backend)
-const SUPPORTED_TYPES = [
+const DEFAULT_SUPPORTED_TYPES = [
   // Documents
   '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.epub', '.mhtml',
   // Text
@@ -37,6 +45,11 @@ const SUPPORTED_TYPES = [
   // Audio
   '.mp3', '.wav', '.m4a', '.flac', '.ogg', '.aac',
 ];
+const supportedTypes = computed(() =>
+  isKnowHubProductMode()
+    ? filterKnowHubUploadFileTypes(DEFAULT_SUPPORTED_TYPES)
+    : DEFAULT_SUPPORTED_TYPES
+);
 
 const maxFiles = computed(() => props.maxFiles || 5);
 const maxSize = computed(() => (props.maxSize || 20) * 1024 * 1024); // Convert MB to bytes
@@ -72,7 +85,11 @@ const addFiles = async (files: File[]) => {
     
     // Check file type
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
-    if (!SUPPORTED_TYPES.includes(ext)) {
+    if (isKnowHubProductMode() && !isKnowHubUploadFileTypeAllowed(ext)) {
+      MessagePlugin.warning(KNOW_HUB_PPT_UNSUPPORTED_MESSAGE);
+      continue;
+    }
+    if (!supportedTypes.value.includes(ext)) {
       MessagePlugin.warning(t('chat.attachmentTypeNotSupported', { name: file.name }));
       continue;
     }
@@ -139,7 +156,7 @@ defineExpose({
     <input
       ref="fileInputRef"
       type="file"
-      :accept="SUPPORTED_TYPES.join(',')"
+      :accept="supportedTypes.join(',')"
       multiple
       style="display: none"
       @change="handleFileSelect"

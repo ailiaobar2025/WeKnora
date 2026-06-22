@@ -65,6 +65,13 @@ import { ref, computed, h, withDefaults } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin, Icon as TIcon } from 'tdesign-vue-next'
 import { filterUploadFiles } from '../utils/uploadSources'
+import {
+  isKnowHubProductMode,
+} from '@/product/knowHub'
+import {
+  isKnowHubUploadFileTypeAllowed,
+  KNOW_HUB_PPT_UNSUPPORTED_MESSAGE,
+} from '@/product/knowHubUpload'
 
 const props = withDefaults(defineProps<{
   acceptFileTypes?: string
@@ -171,10 +178,22 @@ const handleFilesChange = (event: Event, fromFolder: boolean) => {
   const files = input.files
   if (!files || files.length === 0) return
 
-  const result = filterUploadFiles(files, {
+  const selectedFiles = Array.from(files)
+  const allowedFiles = isKnowHubProductMode()
+    ? selectedFiles.filter(file => isKnowHubUploadFileTypeAllowed(file.name))
+    : selectedFiles
+  if (allowedFiles.length !== selectedFiles.length) {
+    MessagePlugin.warning(KNOW_HUB_PPT_UNSUPPORTED_MESSAGE)
+  }
+  if (allowedFiles.length === 0) {
+    input.value = ''
+    return
+  }
+
+  const result = filterUploadFiles(allowedFiles, {
     supportedFileTypes: props.supportedFileTypes,
     fromFolder,
-    multiFile: files.length > 1,
+    multiFile: allowedFiles.length > 1,
   })
 
   if (!notifyFilterResult(result, 'knowledgeBase.allFilesSkippedNoEngine')) {
