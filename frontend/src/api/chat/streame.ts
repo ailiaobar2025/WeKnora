@@ -63,7 +63,7 @@ export function useStream() {
     // home 租户上，导致 SSE 接口返回 404。直接附即可——后端
     // IsTenantAccessible 也允许 header 指向自家租户。
     const selectedTenantId = localStorage.getItem('weknora_selected_tenant_id');
-    const tenantIdHeader: string | null = selectedTenantId || null;
+    const tenantIdHeader: string | null = selectedTenantId || getHomeTenantId();
 
     // TTFB instrumentation: record the moment we kick off the request so
     // we can compare it with the first answer chunk we receive from the
@@ -219,5 +219,17 @@ export function useStream() {
     onChunk,
     startStream,     // 启动流
     stopStream       // 手动停止
+  }
+}
+
+function getHomeTenantId(): string | null {
+  try {
+    const raw = localStorage.getItem('weknora_tenant');
+    if (!raw) return null;
+    const tenant = JSON.parse(raw);
+    const id = tenant?.id;
+    return id !== undefined && id !== null && String(id).trim() ? String(id) : null;
+  } catch {
+    return null;
   }
 }
