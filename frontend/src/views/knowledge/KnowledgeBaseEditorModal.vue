@@ -24,7 +24,7 @@
                     :key="index"
                     :class="['nav-item', { 'active': currentSection === item.key }]"
                     :data-guide="`kb-editor-nav-${item.key}`"
-                    @click="currentSection = item.key"
+                    @click="selectEditorSection(item.key)"
                   >
                     <t-icon :name="item.icon" class="nav-icon" />
                     <span class="nav-label">{{ item.label }}</span>
@@ -45,7 +45,7 @@
                       <p class="section-desc">{{ $t('knowledgeEditor.basic.description') }}</p>
                     </div>
                     <div class="section-body">
-                      <div v-if="mode === 'edit' && props.kbId" class="form-item">
+                      <div v-if="showKnowledgeBaseDebugFields && mode === 'edit' && props.kbId" class="form-item">
                         <label class="form-label">{{ $t('knowledgeEditor.basic.kbId') }}</label>
                         <p class="form-tip">{{ $t('knowledgeEditor.basic.kbIdDesc') }}</p>
                         <div class="kb-id-field">
@@ -91,6 +91,7 @@
                             <p class="indexing-check-desc">{{ $t('knowledgeEditor.indexing.searchDesc') }}</p>
                           </div>
                           <div
+                            v-if="showWikiIndexingControls"
                             class="indexing-check-item"
                             :class="{ 'is-checked': formData.indexingStrategy.wikiEnabled, 'is-disabled': isIndexingLocked }"
                             @click="toggleWikiIndexing"
@@ -114,7 +115,7 @@
                       </div>
 
                       <!-- Wiki 提取粒度 (仅当 Wiki 启用时显示) -->
-                      <div v-if="!isFAQ && formData.indexingStrategy.wikiEnabled" class="form-item">
+                      <div v-if="showWikiIndexingControls && !isFAQ && formData.indexingStrategy.wikiEnabled" class="form-item">
                         <label class="form-label">{{ $t('knowledgeEditor.wiki.extractionGranularityLabel') }}</label>
                         <p class="form-tip">{{ $t('knowledgeEditor.wiki.extractionGranularityTip') }}</p>
                         <t-radio-group
@@ -414,6 +415,8 @@ import GraphSettings from './settings/GraphSettings.vue'
 import KBShareSettings from './settings/KBShareSettings.vue'
 import DataSourceSettings from './settings/DataSourceSettings.vue'
 import { useI18n } from 'vue-i18n'
+import { isKnowHubProductMode } from '@/product/knowHub'
+import { isKnowHubKnowledgeBaseEditorSectionVisible } from '@/product/knowHubAccess'
 
 const uiStore = useUIStore()
 const authStore = useAuthStore()
@@ -460,11 +463,25 @@ const copyKbId = async () => {
 }
 
 const currentSection = ref<string>('basic')
+const isKnowHubMode = computed(() => isKnowHubProductMode())
+const showKnowledgeBaseDebugFields = computed(() => !isKnowHubMode.value)
+const showWikiIndexingControls = computed(() => !isKnowHubMode.value)
+
+const canSeeEditorSection = (section: string): boolean => {
+  if (!isKnowHubMode.value) return true
+  return isKnowHubKnowledgeBaseEditorSectionVisible(section)
+}
+
+const firstVisibleEditorSection = () => navItems.value[0]?.key || 'basic'
+
+const selectEditorSection = (section: string) => {
+  currentSection.value = canSeeEditorSection(section) ? section : firstVisibleEditorSection()
+}
 
 const onKbEditorFocusSection = (event: Event) => {
   const section = (event as CustomEvent<{ section?: string }>).detail?.section
   if (section) {
-    currentSection.value = section
+    selectEditorSection(section)
   }
 }
 
@@ -549,7 +566,7 @@ const navItems = computed(() => {
   if (props.mode === 'edit' && props.kbId && !authStore.isLiteMode) {
     items.push({ key: 'share', icon: 'share', label: t('knowledgeEditor.sidebar.share') })
   }
-  return items
+  return items.filter((item) => canSeeEditorSection(item.key))
 })
 
 // 左侧导航分组（与 AgentEditorModal 对齐）
@@ -620,10 +637,10 @@ watch(
         formData.value.faqConfig = { indexMode: 'question_only', questionIndexMode: 'separate' }
       }
       if (!['basic', 'models', 'faq'].includes(currentSection.value)) {
-        currentSection.value = 'faq'
+        selectEditorSection('faq')
       }
     } else if (oldType === 'faq' && currentSection.value === 'faq') {
-      currentSection.value = 'basic'
+      selectEditorSection('basic')
     }
   }
 )
@@ -1011,7 +1028,7 @@ const validateForm = (): boolean => {
     const s = formData.value.indexingStrategy
     if (s && !s.vectorEnabled && !s.keywordEnabled && !s.wikiEnabled && !s.graphEnabled) {
       MessagePlugin.warning(t('knowledgeEditor.indexing.atLeastOne'))
-      currentSection.value = 'basic'
+      selectEditorSection('basic')
       return false
     }
   }
@@ -1020,26 +1037,26 @@ const validateForm = (): boolean => {
   const needsEmbedding = formData.value.indexingStrategy?.vectorEnabled || formData.value.indexingStrategy?.keywordEnabled
   if (needsEmbedding && !formData.value.modelConfig.embeddingModelId) {
     MessagePlugin.warning(t('knowledgeEditor.indexing.embeddingRequired'))
-    currentSection.value = 'models'
+    selectEditorSection('models')
     return false
   }
 
   if (!formData.value.modelConfig.llmModelId) {
     MessagePlugin.warning(t('knowledgeEditor.messages.summaryRequired'))
-    currentSection.value = 'models'
+    selectEditorSection('models')
     return false
   }
 
   // 验证多模态配置（如果启用）
   if (formData.value.multimodalConfig.enabled && !formData.value.multimodalConfig.vllmModelId) {
     MessagePlugin.warning(t('knowledgeEditor.messages.multimodalInvalid'))
-    currentSection.value = 'multimodal'
+    selectEditorSection('multimodal')
     return false
   }
 
   if (formData.value.type === 'faq' && !formData.value.faqConfig?.indexMode) {
     MessagePlugin.warning(t('knowledgeEditor.messages.indexModeRequired'))
-    currentSection.value = 'faq'
+    selectEditorSection('faq')
     return false
   }
 
@@ -1340,10 +1357,10 @@ const doSubmit = async () => {
     const code = error?.response?.data?.error?.code ?? error?.code
     if (code === 2200) {
       MessagePlugin.error(t('knowledgeEditor.errors.vectorStoreBindingInvalid'))
-      currentSection.value = 'vectorStore'
+      selectEditorSection('vectorStore')
     } else if (code === 2201) {
       MessagePlugin.error(t('knowledgeEditor.errors.vectorStoreUnavailable'))
-      currentSection.value = 'vectorStore'
+      selectEditorSection('vectorStore')
     } else {
       MessagePlugin.error(error?.message || t('common.operationFailed'))
     }
@@ -1354,7 +1371,7 @@ const doSubmit = async () => {
 
 // 重置所有状态
 const resetState = () => {
-  currentSection.value = 'basic'
+  selectEditorSection('basic')
   formData.value = null
   hasFiles.value = false
   initialStorageProvider.value = ''
@@ -1382,7 +1399,7 @@ watch(() => props.visible, async (newVal) => {
     
     // 检查是否有初始 section，如果有则跳转
     if (uiStore.kbEditorInitialSection) {
-      currentSection.value = uiStore.kbEditorInitialSection
+      selectEditorSection(uiStore.kbEditorInitialSection)
     }
     
     // 加载模型列表与租户默认存储引擎（创建 KB 时即使用，不依赖是否打开「存储引擎」Tab）
@@ -1402,7 +1419,7 @@ watch(() => props.visible, async (newVal) => {
     // 关闭弹窗时，延迟重置状态（等待动画结束）
     setTimeout(() => {
       resetState()
-      currentSection.value = 'basic' // 重置为默认 section
+      selectEditorSection('basic') // 重置为默认 section
     }, 300)
   }
 })
@@ -1901,4 +1918,3 @@ watch(
   }
 }
 </style>
-

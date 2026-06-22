@@ -183,6 +183,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
+import { isKnowHubAdmin, isKnowHubProductMode } from '@/product/knowHub'
+import { isKnowHubSettingsSectionVisible } from '@/product/knowHubAccess'
 import SystemInfo from './SystemInfo.vue'
 import TenantInfo from './TenantInfo.vue'
 import ApiInfo from './ApiInfo.vue'
@@ -259,6 +261,12 @@ const SECTION_MIN_ROLE: Record<string, RoleKey> = {
 const SYSTEM_ADMIN_SECTIONS = new Set(['system-global'])
 
 const canSeeSection = (key: string): boolean => {
+  if (
+    isKnowHubProductMode()
+    && !isKnowHubSettingsSectionVisible(key, isKnowHubAdmin(authStore))
+  ) {
+    return false
+  }
   if (SYSTEM_ADMIN_SECTIONS.has(key)) {
     return authStore.isSystemAdmin
   }
@@ -336,6 +344,18 @@ const navGroups = computed<NavGroup[]>(() => {
   ].filter((group) => group.items.length > 0)
 })
 
+const firstVisibleSection = () => navItems.value[0]?.key || 'general'
+
+const selectSection = (section: string, subSection = '') => {
+  if (!canSeeSection(section)) {
+    currentSection.value = firstVisibleSection()
+    currentSubSection.value = ''
+    return
+  }
+  currentSection.value = section
+  currentSubSection.value = subSection
+}
+
 // 导航项点击处理
 const handleNavClick = (item: any) => {
   if (item.children && item.children.length > 0) {
@@ -352,13 +372,12 @@ const handleNavClick = (item: any) => {
   }
 
   // 切换到对应页面
-  currentSection.value = item.key
+  selectSection(item.key, currentSubSection.value)
 }
 
 // 子菜单点击处理
 const handleSubMenuClick = (parentKey: string, childKey: string) => {
-  currentSection.value = parentKey
-  currentSubSection.value = childKey
+  selectSection(parentKey, childKey)
 
   // 滚动到对应的模型类型区域
   setTimeout(() => {
@@ -391,7 +410,7 @@ const handleClose = () => {
 // 监听初始导航设置
 watch(() => uiStore.settingsInitialSection, (section) => {
   if (section && visible.value) {
-    currentSection.value = section
+    selectSection(section)
     const navItem = (navItems.value as any[]).find((item) => item.key === section)
     if (navItem && navItem.children && navItem.children.length > 0) {
       if (!expandedMenus.value.includes(section)) {
@@ -416,8 +435,7 @@ watch(
   () => [visible.value, route.query.section],
   ([isVisible, section]) => {
     if (!isVisible || typeof section !== 'string') return
-    currentSection.value = section
-    currentSubSection.value = ''
+    selectSection(section)
   },
   { immediate: true },
 )
@@ -442,7 +460,7 @@ const handleEscape = (e: KeyboardEvent) => {
 const handleSettingsNav = (e: CustomEvent) => {
   const { section, subsection } = e.detail
   if (section) {
-    currentSection.value = section
+    selectSection(section)
     // 如果有子菜单，自动展开
     const navItem = (navItems.value as any[]).find((item: any) => item.key === section)
     if (navItem && navItem.children && navItem.children.length > 0) {

@@ -10,6 +10,26 @@ const ADMIN_MENU_PATHS = new Set([
   'trial-report',
 ])
 
+const CUSTOMER_SETTINGS_SECTIONS = new Set([
+  'general',
+  'userprofile',
+  'tenant',
+])
+
+const ADMIN_SETTINGS_SECTIONS = new Set([
+  ...CUSTOMER_SETTINGS_SECTIONS,
+  'members',
+  'system',
+])
+
 export function isKnowHubMenuVisible(path: string, isAdmin: boolean): boolean {
   return (isAdmin ? ADMIN_MENU_PATHS : CUSTOMER_MENU_PATHS).has(path)
+}
+
+export function isKnowHubSettingsSectionVisible(section: string, isAdmin: boolean): boolean {
+  return (isAdmin ? ADMIN_SETTINGS_SECTIONS : CUSTOMER_SETTINGS_SECTIONS).has(section)
+}
+
+export function isKnowHubKnowledgeBaseEditorSectionVisible(section: string): boolean {
+  return section === 'basic'
 }

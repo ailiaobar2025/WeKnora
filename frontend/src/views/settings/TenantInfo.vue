@@ -24,7 +24,7 @@
     <div v-else class="tenant-info-body">
       <div class="settings-group">
         <!-- Tenant ID -->
-        <div class="setting-row">
+        <div v-if="showTechnicalIdentityFields" class="setting-row">
           <div class="setting-info">
             <label>{{ $t('tenant.details.idLabel') }}</label>
             <p class="desc">{{ $t('tenant.details.idDescription') }}</p>
@@ -257,11 +257,13 @@ import {
   persistLastActiveTenantPreference,
   stashTenantSwitchToast,
 } from '@/utils/tenantSwitch'
+import { isKnowHubProductMode } from '@/product/knowHub'
 
 const { t, locale } = useI18n()
 const { formatRole } = useRoleLabel()
 const { homeTenantId } = useHomeTenant()
 const authStore = useAuthStore()
+const showTechnicalIdentityFields = computed(() => !isKnowHubProductMode())
 
 // Reactive state
 const tenantInfo = ref<TenantInfo | null>(null)

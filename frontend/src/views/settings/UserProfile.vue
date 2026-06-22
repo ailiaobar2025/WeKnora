@@ -23,7 +23,7 @@
     <!-- Content -->
     <div v-else class="settings-group">
       <!-- 用户 ID -->
-      <div class="setting-row">
+      <div v-if="showTechnicalIdentityFields" class="setting-row">
         <div class="setting-info">
           <label>{{ $t('tenant.api.userIdLabel') }}</label>
           <p class="desc">{{ $t('tenant.api.userIdDescription') }}</p>
@@ -70,15 +70,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { getCurrentUser, type UserInfo } from '@/api/auth'
 import { useI18n } from 'vue-i18n'
+import { isKnowHubProductMode } from '@/product/knowHub'
 
 const { t, locale } = useI18n()
 
 const userInfo = ref<UserInfo | null>(null)
 const loading = ref(true)
 const error = ref('')
+const showTechnicalIdentityFields = computed(() => !isKnowHubProductMode())
 
 const loadInfo = async () => {
   try {

@@ -263,6 +263,8 @@ import type { TenantInfo } from '@/api/tenant'
 import { useRoleLabel, useHomeTenant } from '@/composables/useRoleLabel'
 import { getRootZoom, rectToCssPx, cssViewportSize } from '@/utils/zoom'
 import { openNewUserGuide } from '@/config/contextualGuides'
+import { isKnowHubAdmin, isKnowHubProductMode } from '@/product/knowHub'
+import { isKnowHubSettingsSectionVisible } from '@/product/knowHubAccess'
 
 const { t } = useI18n()
 
@@ -304,6 +306,12 @@ const QUICKNAV_MIN_ROLE: Record<string, 'viewer' | 'contributor' | 'admin' | 'ow
   api: 'owner',
 }
 const canSeeQuickNav = (key: string): boolean => {
+  if (
+    isKnowHubProductMode()
+    && !isKnowHubSettingsSectionVisible(key, isKnowHubAdmin(authStore))
+  ) {
+    return false
+  }
   if (authStore.canAccessAllTenants) return true
   return authStore.hasRole(QUICKNAV_MIN_ROLE[key] ?? 'viewer')
 }
