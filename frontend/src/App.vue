@@ -12,6 +12,8 @@ import { consumePendingTenantSwitchToast } from '@/utils/tenantSwitch'
 import { useRoleLabel } from '@/composables/useRoleLabel'
 import { notifyLoginSuccess } from '@/utils/loginNotify'
 import { renderWorkspaceNotifyContent } from '@/utils/workspaceNotifyContent'
+import { bootstrapKnowHubWorkspace } from '@/api/know-hub'
+import { isKnowHubProductMode } from '@/product/knowHub'
 
 // TDesign locale configs
 import enUSConfig from 'tdesign-vue-next/esm/locale/en_US'
@@ -186,6 +188,23 @@ watch(
   (logged) => {
     if (logged) startInvitationPolling()
     else stopInvitationPolling()
+  },
+  { immediate: true },
+)
+
+let bootstrappedKnowHubTenantId = ''
+watch(
+  () => [authStore.isLoggedIn, String(authStore.effectiveTenantId || '')] as const,
+  async ([loggedIn, tenantId]) => {
+    if (!isKnowHubProductMode() || !loggedIn || !tenantId) return
+    if (bootstrappedKnowHubTenantId === tenantId) return
+
+    try {
+      await bootstrapKnowHubWorkspace()
+      bootstrappedKnowHubTenantId = tenantId
+    } catch (error) {
+      console.warn('Know Hub workspace bootstrap failed', error)
+    }
   },
   { immediate: true },
 )

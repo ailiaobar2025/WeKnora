@@ -27,10 +27,6 @@ function getKnowHubBackendBaseUrl(): string {
   return (import.meta.env.VITE_KNOW_HUB_BACKEND_BASE_URL || '').replace(/\/$/, '')
 }
 
-function getKnowHubRole(authStore: ReturnType<typeof useAuthStore>): 'admin' | 'customer' {
-  return authStore.isSystemAdmin || authStore.canAccessAllTenants ? 'admin' : 'customer'
-}
-
 async function requestKnowHub<T>(path: string, init: RequestInit = {}): Promise<T> {
   const authStore = useAuthStore()
   const tenantId = authStore.effectiveTenantId || authStore.currentTenantId
@@ -43,10 +39,6 @@ async function requestKnowHub<T>(path: string, init: RequestInit = {}): Promise<
     headers.set('X-Tenant-ID', String(tenantId))
     headers.set('X-WeKnora-Tenant-Id', String(tenantId))
   }
-  if (authStore.currentUserId) headers.set('X-WeKnora-User-Id', String(authStore.currentUserId))
-  if (authStore.user?.username) headers.set('X-WeKnora-User-Name', authStore.user.username)
-  headers.set('X-Know-Hub-Role', getKnowHubRole(authStore))
-
   const response = await fetch(url, {
     ...init,
     headers,
