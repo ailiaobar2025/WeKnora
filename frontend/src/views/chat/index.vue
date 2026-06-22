@@ -128,6 +128,7 @@ import { useKnowledgeBaseCreationNavigation } from '@/hooks/useKnowledgeBaseCrea
 import { useChatStreamHandler } from '@/composables/useChatStreamHandler';
 import { useStickyBottomOnResize } from '@/composables/useStickyBottomOnResize';
 import { clearCitationChunkCache } from '@/utils/citationChunkCache';
+import { resolveKnowHubChatEndpoint } from '@/product/knowHub';
 
 const props = defineProps({
     session_id: { type: String, default: '' },
@@ -656,7 +657,7 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
     // Get selected agent ID (backend resolves shared agent and its tenant from share relation)
     const selectedAgentId = props.embeddedMode ? props.agentId : (useSettingsStoreInstance.selectedAgentId || '');
 
-    const endpoint = agentEnabled ? '/api/v1/agent-chat' : '/api/v1/knowledge-chat';
+    const endpoint = resolveKnowHubChatEndpoint(agentEnabled ? '/api/v1/agent-chat' : '/api/v1/knowledge-chat');
 
     // Get selected MCP services from settings store (if available)
     const mcpServiceIds = props.embeddedMode ? [] : (useSettingsStoreInstance.settings.selectedMCPServices || []);

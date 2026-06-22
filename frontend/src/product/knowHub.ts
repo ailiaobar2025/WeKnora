@@ -67,3 +67,8 @@ export function isKnowHubRouteAllowed(
 export function getKnowHubRouteFallback(): string {
   return '/platform/knowledge-bases'
 }
+
+export function resolveKnowHubChatEndpoint(defaultEndpoint: string): string {
+  if (!isKnowHubProductMode()) return defaultEndpoint
+  return import.meta.env.VITE_KNOW_HUB_CHAT_PROXY_PATH || defaultEndpoint
+}
