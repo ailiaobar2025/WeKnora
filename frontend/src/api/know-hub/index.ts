@@ -5,6 +5,24 @@ export interface KnowHubReportResponse {
   report: string
 }
 
+export interface KnowHubWorkspaceSummary {
+  id: string
+  name: string
+  workspace_type: string
+  owner_name: string
+  status: string
+}
+
+export interface KnowHubAdminReport {
+  workspace: KnowHubWorkspaceSummary
+  report: string
+  error: string
+}
+
+export interface KnowHubAdminReportsResponse {
+  reports: KnowHubAdminReport[]
+}
+
 function getKnowHubBackendBaseUrl(): string {
   return (import.meta.env.VITE_KNOW_HUB_BACKEND_BASE_URL || '').replace(/\/$/, '')
 }
@@ -42,6 +60,10 @@ async function requestKnowHub<T>(path: string, init: RequestInit = {}): Promise<
 
 export function getCurrentTenantReport(): Promise<KnowHubReportResponse> {
   return requestKnowHub<KnowHubReportResponse>('/api/v1/report')
+}
+
+export function getAdminReports(): Promise<KnowHubAdminReportsResponse> {
+  return requestKnowHub<KnowHubAdminReportsResponse>('/api/v1/admin/reports')
 }
 
 export function bootstrapKnowHubWorkspace() {

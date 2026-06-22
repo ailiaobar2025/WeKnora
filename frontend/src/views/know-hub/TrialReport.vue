@@ -12,12 +12,18 @@
 
     <t-loading :loading="loading" size="small">
       <t-alert v-if="error" theme="warning" :message="error" class="report-alert" />
-      <div v-else-if="report" class="trial-report-card">
-        <div class="report-meta">
-          <span>业务空间</span>
-          <strong>{{ workspaceId }}</strong>
-        </div>
-        <pre class="report-content">{{ report }}</pre>
+      <div v-else-if="reports.length" class="report-list">
+        <section v-for="item in reports" :key="item.workspace.id" class="trial-report-card">
+          <div class="report-meta">
+            <div>
+              <strong>{{ item.workspace.name }}</strong>
+              <span>{{ item.workspace.id }}</span>
+            </div>
+            <span>{{ item.workspace.status }}</span>
+          </div>
+          <t-alert v-if="item.error" theme="warning" :message="item.error" />
+          <pre v-else class="report-content">{{ item.report }}</pre>
+        </section>
       </div>
       <div v-else class="trial-report-card empty">
         暂无可展示的试用报告数据。
@@ -28,22 +34,20 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { getCurrentTenantReport } from '@/api/know-hub'
+import { getAdminReports, type KnowHubAdminReport } from '@/api/know-hub'
 
 const loading = ref(false)
 const error = ref('')
-const workspaceId = ref('')
-const report = ref('')
+const reports = ref<KnowHubAdminReport[]>([])
 
 async function loadReport() {
   loading.value = true
   error.value = ''
   try {
-    const payload = await getCurrentTenantReport()
-    workspaceId.value = payload.workspace_id
-    report.value = payload.report
+    const payload = await getAdminReports()
+    reports.value = payload.reports
   } catch (err: any) {
-    report.value = ''
+    reports.value = []
     error.value = err?.message || '试用报告暂不可用'
   } finally {
     loading.value = false
@@ -78,6 +82,12 @@ onMounted(loadReport)
   background: #fff;
 }
 
+.report-list {
+  display: grid;
+  max-width: 960px;
+  gap: 16px;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   color: #00a870;
@@ -106,6 +116,15 @@ h1 {
   margin-bottom: 20px;
   color: #4e5969;
   font-size: 14px;
+}
+
+.report-meta > div {
+  display: grid;
+  gap: 4px;
+}
+
+.report-meta span {
+  word-break: break-all;
 }
 
 .report-meta strong {

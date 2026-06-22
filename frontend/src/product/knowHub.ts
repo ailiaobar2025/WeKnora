@@ -1,5 +1,6 @@
 import type { RouteLocationNormalized } from 'vue-router'
 import type { useAuthStore } from '@/stores/auth'
+import { isKnowHubMenuVisible } from './knowHubAccess'
 
 export const KNOW_HUB_PRODUCT_MODE = 'know-hub'
 
@@ -11,24 +12,12 @@ export function isKnowHubAdmin(authStore: ReturnType<typeof useAuthStore>): bool
   return authStore.isSystemAdmin || authStore.canAccessAllTenants
 }
 
-const CUSTOMER_MENU_PATHS = new Set([
-  'creatChat',
-  'knowledge-bases',
-  'trial-report',
-  'settings',
-  'logout',
-])
-
-const ADMIN_MENU_PATHS = new Set([
-  ...CUSTOMER_MENU_PATHS,
-])
-
 export function isKnowHubMenuPathVisible(
   path: string,
   authStore: ReturnType<typeof useAuthStore>,
 ): boolean {
   if (!isKnowHubProductMode()) return true
-  return (isKnowHubAdmin(authStore) ? ADMIN_MENU_PATHS : CUSTOMER_MENU_PATHS).has(path)
+  return isKnowHubMenuVisible(path, isKnowHubAdmin(authStore))
 }
 
 const DISABLED_ROUTE_NAMES = new Set([
