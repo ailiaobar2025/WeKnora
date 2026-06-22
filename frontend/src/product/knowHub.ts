@@ -1,0 +1,69 @@
+import type { RouteLocationNormalized } from 'vue-router'
+import type { useAuthStore } from '@/stores/auth'
+
+export const KNOW_HUB_PRODUCT_MODE = 'know-hub'
+
+export function isKnowHubProductMode(): boolean {
+  return import.meta.env.VITE_PRODUCT_MODE === KNOW_HUB_PRODUCT_MODE
+}
+
+export function isKnowHubAdmin(authStore: ReturnType<typeof useAuthStore>): boolean {
+  return authStore.isSystemAdmin || authStore.canAccessAllTenants
+}
+
+const CUSTOMER_MENU_PATHS = new Set([
+  'creatChat',
+  'knowledge-bases',
+  'trial-report',
+  'settings',
+  'logout',
+])
+
+const ADMIN_MENU_PATHS = new Set([
+  ...CUSTOMER_MENU_PATHS,
+])
+
+export function isKnowHubMenuPathVisible(
+  path: string,
+  authStore: ReturnType<typeof useAuthStore>,
+): boolean {
+  if (!isKnowHubProductMode()) return true
+  return (isKnowHubAdmin(authStore) ? ADMIN_MENU_PATHS : CUSTOMER_MENU_PATHS).has(path)
+}
+
+const DISABLED_ROUTE_NAMES = new Set([
+  'agentList',
+  'organizationList',
+  'systemSettings',
+  'systemAdmins',
+])
+
+const DISABLED_ROUTE_PREFIXES = [
+  '/platform/agents',
+  '/platform/organizations',
+  '/platform/system',
+]
+
+export function isKnowHubRouteAllowed(
+  to: RouteLocationNormalized,
+  authStore: ReturnType<typeof useAuthStore>,
+): boolean {
+  if (!isKnowHubProductMode()) return true
+
+  const routeName = typeof to.name === 'string' ? to.name : ''
+  if (DISABLED_ROUTE_NAMES.has(routeName)) return false
+
+  if (DISABLED_ROUTE_PREFIXES.some((prefix) => to.path.startsWith(prefix))) {
+    return false
+  }
+
+  if (to.meta.requiresSystemAdmin === true && !isKnowHubAdmin(authStore)) {
+    return false
+  }
+
+  return true
+}
+
+export function getKnowHubRouteFallback(): string {
+  return '/platform/knowledge-bases'
+}

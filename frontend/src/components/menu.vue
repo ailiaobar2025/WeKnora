@@ -453,6 +453,8 @@ const isMenuItemActive = (itemPath: string): boolean => {
             return currentRoute === 'organizationList';
         case 'creatChat':
             return currentRoute === 'kbCreatChat' || currentRoute === 'globalCreatChat';
+        case 'trial-report':
+            return currentRoute === 'trialReport';
         case 'settings':
             return currentRoute === 'settings';
         default:
@@ -479,13 +481,13 @@ const getIconActiveState = (itemPath: string) => {
 // 分离上下两部分菜单（使用 visibleMenuArr 以便 lite 模式过滤 logout）
 const topMenuItems = computed<MenuItem[]>(() => {
     return (visibleMenuArr.value as unknown as MenuItem[]).filter((item: MenuItem) =>
-        item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'organizations' || item.path === 'creatChat'
+        item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'organizations' || item.path === 'creatChat' || item.path === 'trial-report'
     );
 });
 
 const bottomMenuItems = computed<MenuItem[]>(() => {
     return (visibleMenuArr.value as unknown as MenuItem[]).filter((item: MenuItem) => {
-        if (item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'organizations' || item.path === 'creatChat') {
+        if (item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'organizations' || item.path === 'creatChat' || item.path === 'trial-report') {
             return false;
         }
         return true;
@@ -1064,6 +1066,8 @@ const handleMenuClick = async (path: string) => {
     } else if (path === 'organizations') {
         // 组织菜单项：跳转到组织列表
         router.push('/platform/organizations')
+    } else if (path === 'trial-report') {
+        router.push('/platform/trial-report')
     } else if (path === 'settings') {
         // 设置菜单项：打开设置弹窗并跳转路由
         uiStore.openSettings()

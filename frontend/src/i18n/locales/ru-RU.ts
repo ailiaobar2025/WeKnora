@@ -3,6 +3,7 @@ export default {
     knowledgeBase: 'База знаний',
     chat: 'Диалог',
     newChat: 'Новый диалог',
+    trialReport: 'Отчет о пробном периоде',
     createChat: 'Создать диалог',
     tenant: 'Информация об аккаунте',
     settings: 'Настройки системы',

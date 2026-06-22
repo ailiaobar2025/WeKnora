@@ -5,6 +5,7 @@ export default {
     organizations: "공유 스페이스",
     chat: "대화",
     newChat: "새 대화",
+    trialReport: "평가 보고서",
     createChat: "대화 생성",
     tenant: "계정 정보",
     settings: "시스템 설정",

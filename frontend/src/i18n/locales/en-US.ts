@@ -5,6 +5,7 @@ export default {
     organizations: 'Shared Spaces',
     chat: 'Chat',
     newChat: 'New Chat',
+    trialReport: 'Trial Report',
     createChat: 'Create Chat',
     tenant: 'Account Info',
     settings: 'System Settings',
