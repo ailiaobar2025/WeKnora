@@ -59,5 +59,11 @@ export function getKnowHubRouteFallback(): string {
 
 export function resolveKnowHubChatEndpoint(defaultEndpoint: string): string {
   if (!isKnowHubProductMode()) return defaultEndpoint
-  return import.meta.env.VITE_KNOW_HUB_CHAT_PROXY_PATH || defaultEndpoint
+  const configured = import.meta.env.VITE_KNOW_HUB_CHAT_PROXY_PATH
+  if (configured) return configured
+
+  const backendBase = (import.meta.env.VITE_KNOW_HUB_BACKEND_BASE_URL || '').replace(/\/$/, '')
+  if (!backendBase) return defaultEndpoint
+  const chatKind = defaultEndpoint.includes('agent-chat') ? 'agent' : 'knowledge'
+  return `${backendBase}/api/v1/chat/stream/${chatKind}`
 }
