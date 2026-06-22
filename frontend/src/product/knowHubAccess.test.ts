@@ -15,10 +15,16 @@ test('customer menu excludes trial reports and technical entries', () => {
   assert.equal(isKnowHubMenuVisible('agents', false), false)
 })
 
-test('admin menu includes trial reports but keeps technical entries hidden', () => {
+test('limited admin menu includes trial reports but keeps technical entries hidden', () => {
   assert.equal(isKnowHubMenuVisible('trial-report', true), true)
   assert.equal(isKnowHubMenuVisible('agents', true), false)
   assert.equal(isKnowHubMenuVisible('organizations', true), false)
+})
+
+test('system admin menu keeps native operational entries visible', () => {
+  assert.equal(isKnowHubMenuVisible('trial-report', true, true), true)
+  assert.equal(isKnowHubMenuVisible('agents', true, true), true)
+  assert.equal(isKnowHubMenuVisible('organizations', true, true), true)
 })
 
 test('customer settings keep only account and tenant basics', () => {
@@ -32,7 +38,7 @@ test('customer settings keep only account and tenant basics', () => {
   assert.equal(isKnowHubSettingsSectionVisible('storage', false), false)
 })
 
-test('admin settings keep operational read surfaces but hide technical configuration', () => {
+test('limited admin settings keep operational read surfaces but hide technical configuration', () => {
   assert.equal(isKnowHubSettingsSectionVisible('members', true), true)
   assert.equal(isKnowHubSettingsSectionVisible('system', true), true)
   assert.equal(isKnowHubSettingsSectionVisible('models', true), false)
@@ -40,6 +46,15 @@ test('admin settings keep operational read surfaces but hide technical configura
   assert.equal(isKnowHubSettingsSectionVisible('mcp', true), false)
   assert.equal(isKnowHubSettingsSectionVisible('vectorstore', true), false)
   assert.equal(isKnowHubSettingsSectionVisible('system-global', true), false)
+})
+
+test('system admin settings keep native technical configuration visible', () => {
+  assert.equal(isKnowHubSettingsSectionVisible('members', true, true), true)
+  assert.equal(isKnowHubSettingsSectionVisible('models', true, true), true)
+  assert.equal(isKnowHubSettingsSectionVisible('websearch', true, true), true)
+  assert.equal(isKnowHubSettingsSectionVisible('mcp', true, true), true)
+  assert.equal(isKnowHubSettingsSectionVisible('vectorstore', true, true), true)
+  assert.equal(isKnowHubSettingsSectionVisible('system-global', true, true), true)
 })
 
 test('knowledge base editor keeps only basic settings in product mode', () => {

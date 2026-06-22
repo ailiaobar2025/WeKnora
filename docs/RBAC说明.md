@@ -128,6 +128,7 @@ audit:
 | 环境变量 | YAML 路径 | 取值 |
 |----------|-----------|------|
 | `WEKNORA_TENANT_ENABLE_RBAC` | `tenant.enable_rbac` | `true` / `false` |
+| `WEKNORA_TENANT_ENABLE_CROSS_TENANT_ACCESS` | `tenant.enable_cross_tenant_access` | `true` / `false` |
 | `WEKNORA_AUDIT_RETENTION_DAYS` | `audit.retention_days` | 非负整数 |
 
 `auth.registration_mode` 没有专属环境变量，沿用历史的 `DISABLE_REGISTRATION=true`——一旦设置，启动时会把 `auth.registration_mode` 强制改成 `invite_only`，保证后端 API 和 `/auth/config` 驱动的前端注册入口一致。

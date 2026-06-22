@@ -30,6 +30,7 @@ func TestApplyAuthAndTenantDefaults_DisableRegistrationDrivesRegistrationMode(t 
 			t.Setenv("DISABLE_REGISTRATION", tc.disable)
 			// Other tenant env vars must not leak between cases.
 			t.Setenv("WEKNORA_TENANT_ENABLE_RBAC", "")
+			t.Setenv("WEKNORA_TENANT_ENABLE_CROSS_TENANT_ACCESS", "")
 			t.Setenv("WEKNORA_TENANT_MAX_OWNED_PER_USER", "")
 
 			cfg := &Config{Auth: &AuthConfig{RegistrationMode: tc.cfgMode}}
@@ -37,6 +38,40 @@ func TestApplyAuthAndTenantDefaults_DisableRegistrationDrivesRegistrationMode(t 
 
 			if cfg.Auth.RegistrationMode != tc.expected {
 				t.Fatalf("registration_mode = %q, want %q", cfg.Auth.RegistrationMode, tc.expected)
+			}
+		})
+	}
+}
+
+func TestApplyAuthAndTenantDefaults_CrossTenantAccessEnvOverride(t *testing.T) {
+	cases := []struct {
+		name     string
+		env      string
+		yaml     bool
+		expected bool
+	}{
+		{"unset keeps YAML false", "", false, false},
+		{"unset keeps YAML true", "", true, true},
+		{"true enables", "true", false, true},
+		{"TRUE enables case-insensitively", "TRUE", false, true},
+		{"false disables", "false", true, false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("DISABLE_REGISTRATION", "")
+			t.Setenv("WEKNORA_TENANT_ENABLE_RBAC", "")
+			t.Setenv("WEKNORA_TENANT_ENABLE_CROSS_TENANT_ACCESS", tc.env)
+			t.Setenv("WEKNORA_TENANT_MAX_OWNED_PER_USER", "")
+
+			cfg := &Config{
+				Auth:   &AuthConfig{},
+				Tenant: &TenantConfig{EnableCrossTenantAccess: tc.yaml},
+			}
+			applyAuthAndTenantDefaults(cfg)
+
+			if cfg.Tenant.EnableCrossTenantAccess != tc.expected {
+				t.Fatalf("enable_cross_tenant_access = %v, want %v", cfg.Tenant.EnableCrossTenantAccess, tc.expected)
 			}
 		})
 	}

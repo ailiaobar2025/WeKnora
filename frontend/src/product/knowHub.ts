@@ -12,12 +12,16 @@ export function isKnowHubAdmin(authStore: ReturnType<typeof useAuthStore>): bool
   return authStore.isSystemAdmin || authStore.canAccessAllTenants
 }
 
+export function isKnowHubSystemAdmin(authStore: ReturnType<typeof useAuthStore>): boolean {
+  return authStore.isSystemAdmin || authStore.canAccessAllTenants
+}
+
 export function isKnowHubMenuPathVisible(
   path: string,
   authStore: ReturnType<typeof useAuthStore>,
 ): boolean {
   if (!isKnowHubProductMode()) return true
-  return isKnowHubMenuVisible(path, isKnowHubAdmin(authStore))
+  return isKnowHubMenuVisible(path, isKnowHubAdmin(authStore), isKnowHubSystemAdmin(authStore))
 }
 
 const DISABLED_ROUTE_NAMES = new Set([
@@ -38,6 +42,7 @@ export function isKnowHubRouteAllowed(
   authStore: ReturnType<typeof useAuthStore>,
 ): boolean {
   if (!isKnowHubProductMode()) return true
+  if (isKnowHubSystemAdmin(authStore)) return true
 
   const routeName = typeof to.name === 'string' ? to.name : ''
   if (DISABLED_ROUTE_NAMES.has(routeName)) return false

@@ -183,7 +183,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
-import { isKnowHubAdmin, isKnowHubProductMode } from '@/product/knowHub'
+import { isKnowHubAdmin, isKnowHubProductMode, isKnowHubSystemAdmin } from '@/product/knowHub'
 import { isKnowHubSettingsSectionVisible } from '@/product/knowHubAccess'
 import SystemInfo from './SystemInfo.vue'
 import TenantInfo from './TenantInfo.vue'
@@ -263,7 +263,7 @@ const SYSTEM_ADMIN_SECTIONS = new Set(['system-global'])
 const canSeeSection = (key: string): boolean => {
   if (
     isKnowHubProductMode()
-    && !isKnowHubSettingsSectionVisible(key, isKnowHubAdmin(authStore))
+    && !isKnowHubSettingsSectionVisible(key, isKnowHubAdmin(authStore), isKnowHubSystemAdmin(authStore))
   ) {
     return false
   }

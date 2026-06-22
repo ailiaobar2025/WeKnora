@@ -780,6 +780,7 @@ func applyAgentEnvOverrides(cfg *Config) {
 //
 // Env overrides (when set and non-empty):
 //   - WEKNORA_TENANT_ENABLE_RBAC      ("true"/"false", case-insensitive)
+//   - WEKNORA_TENANT_ENABLE_CROSS_TENANT_ACCESS ("true"/"false", case-insensitive)
 //   - WEKNORA_TENANT_MAX_OWNED_PER_USER (integer; <0 disables the cap,
 //     0 falls back to the handler default, >0 enforces that exact cap).
 //     Unparseable / empty values are ignored so a stale shell variable
@@ -817,6 +818,9 @@ func applyAuthAndTenantDefaults(cfg *Config) {
 	if value := strings.TrimSpace(os.Getenv("WEKNORA_TENANT_ENABLE_RBAC")); value != "" {
 		v := strings.EqualFold(value, "true")
 		cfg.Tenant.EnableRBAC = &v
+	}
+	if value := strings.TrimSpace(os.Getenv("WEKNORA_TENANT_ENABLE_CROSS_TENANT_ACCESS")); value != "" {
+		cfg.Tenant.EnableCrossTenantAccess = strings.EqualFold(value, "true")
 	}
 	if cfg.Tenant.EnableRBAC == nil {
 		// Default: enforce. Operators opt out of enforcement explicitly
