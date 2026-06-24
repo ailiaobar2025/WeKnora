@@ -17,12 +17,52 @@ import i18n from "./i18n";
 import { initTheme } from "@/composables/useTheme";
 import { initFont } from "@/composables/useFont";
 import { installTDesignIconOfflineGuard } from "@/utils/tdesign-icon-offline";
+import { getPageTitle, getPageDescription, getPageKeywords, getFaviconPath } from "@/product/knowHubBrand";
 
 // 必须在 Vue 组件挂载之前执行，避免 tdesign-icons 运行时请求 tdesign.gtimg.com
 installTDesignIconOfflineGuard();
 
+// 设置产品模式品牌配置
+const applyBrandConfig = () => {
+  const title = getPageTitle();
+  const description = getPageDescription();
+  const keywords = getPageKeywords();
+  const faviconPath = getFaviconPath();
+
+  document.title = title;
+
+  const metaDescription = document.getElementById('meta-description');
+  const metaKeywords = document.getElementById('meta-keywords');
+
+  if (metaDescription) {
+    metaDescription.setAttribute('content', description);
+  }
+  if (metaKeywords) {
+    metaKeywords.setAttribute('content', keywords);
+  }
+
+  // 更新 favicon
+  let faviconLink = document.querySelector("link[rel='shortcut icon']") as HTMLLinkElement;
+  if (!faviconLink) {
+    faviconLink = document.createElement("link");
+    faviconLink.rel = "shortcut icon";
+    document.head.appendChild(faviconLink);
+  }
+  faviconLink.href = faviconPath;
+
+  // 更新 apple-touch-icon
+  let appleTouchIcon = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement;
+  if (!appleTouchIcon) {
+    appleTouchIcon = document.createElement("link");
+    appleTouchIcon.rel = "apple-touch-icon";
+    document.head.appendChild(appleTouchIcon);
+  }
+  appleTouchIcon.href = faviconPath;
+};
+
 initTheme();
 initFont();
+applyBrandConfig();
 
 const app = createApp(App);
 

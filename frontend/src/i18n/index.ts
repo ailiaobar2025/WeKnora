@@ -3,13 +3,17 @@ import zhCN from './locales/zh-CN.ts'
 import ruRU from './locales/ru-RU.ts'
 import enUS from './locales/en-US.ts'
 import koKR from './locales/ko-KR.ts'
+import { applyKnowHubOverrides } from './knowHubOverrides'
 
-const messages = {
+const baseMessages = {
   'zh-CN': zhCN,
   'en-US': enUS,
   'ru-RU': ruRU,
   'ko-KR': koKR
 }
+
+// 应用 Know Hub 产品模式品牌文案覆盖
+const messages = applyKnowHubOverrides(baseMessages)
 
 // Получаем сохраненный язык из localStorage или используем китайский по умолчанию
 const savedLocale = localStorage.getItem('locale') || 'zh-CN'

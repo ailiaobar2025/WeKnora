@@ -4,6 +4,8 @@ export default {
     chat: 'Диалог',
     newChat: 'Новый диалог',
     trialReport: 'Отчет о пробном периоде',
+    quotaAudit: 'Аудит квот',
+    auditLogs: 'Журнал аудита',
     createChat: 'Создать диалог',
     tenant: 'Информация об аккаунте',
     settings: 'Настройки системы',

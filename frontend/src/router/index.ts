@@ -152,6 +152,18 @@ const router = createRouter({
           meta: { requiresInit: true, requiresAuth: true, requiresKnowHubAdmin: true }
         },
         {
+          path: "quota-audit",
+          name: "quotaAudit",
+          component: () => import("../views/know-hub/QuotaAudit.vue"),
+          meta: { requiresInit: true, requiresAuth: true, requiresKnowHubAdmin: true }
+        },
+        {
+          path: "audit-logs",
+          name: "auditLogs",
+          component: () => import("../views/know-hub/AuditLogs.vue"),
+          meta: { requiresInit: true, requiresAuth: true, requiresKnowHubAdmin: true }
+        },
+        {
           path: "chat/:chatid",
           name: "chat",
           component: () => import("../views/chat/index.vue"),

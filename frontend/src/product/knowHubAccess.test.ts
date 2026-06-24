@@ -12,17 +12,23 @@ test('customer menu excludes trial reports and technical entries', () => {
   assert.equal(isKnowHubMenuVisible('knowledge-bases', false), true)
   assert.equal(isKnowHubMenuVisible('settings', false), true)
   assert.equal(isKnowHubMenuVisible('trial-report', false), false)
+  assert.equal(isKnowHubMenuVisible('quota-audit', false), false)
+  assert.equal(isKnowHubMenuVisible('audit-logs', false), false)
   assert.equal(isKnowHubMenuVisible('agents', false), false)
 })
 
 test('limited admin menu includes trial reports but keeps technical entries hidden', () => {
   assert.equal(isKnowHubMenuVisible('trial-report', true), true)
+  assert.equal(isKnowHubMenuVisible('quota-audit', true), true)
+  assert.equal(isKnowHubMenuVisible('audit-logs', true), true)
   assert.equal(isKnowHubMenuVisible('agents', true), false)
   assert.equal(isKnowHubMenuVisible('organizations', true), false)
 })
 
 test('system admin menu keeps native operational entries visible', () => {
   assert.equal(isKnowHubMenuVisible('trial-report', true, true), true)
+  assert.equal(isKnowHubMenuVisible('quota-audit', true, true), true)
+  assert.equal(isKnowHubMenuVisible('audit-logs', true, true), true)
   assert.equal(isKnowHubMenuVisible('agents', true, true), true)
   assert.equal(isKnowHubMenuVisible('organizations', true, true), true)
 })

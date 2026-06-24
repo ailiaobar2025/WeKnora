@@ -455,6 +455,10 @@ const isMenuItemActive = (itemPath: string): boolean => {
             return currentRoute === 'kbCreatChat' || currentRoute === 'globalCreatChat';
         case 'trial-report':
             return currentRoute === 'trialReport';
+        case 'quota-audit':
+            return currentRoute === 'quotaAudit';
+        case 'audit-logs':
+            return currentRoute === 'auditLogs';
         case 'settings':
             return currentRoute === 'settings';
         default:
@@ -481,13 +485,13 @@ const getIconActiveState = (itemPath: string) => {
 // 分离上下两部分菜单（使用 visibleMenuArr 以便 lite 模式过滤 logout）
 const topMenuItems = computed<MenuItem[]>(() => {
     return (visibleMenuArr.value as unknown as MenuItem[]).filter((item: MenuItem) =>
-        item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'organizations' || item.path === 'creatChat' || item.path === 'trial-report'
+        item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'organizations' || item.path === 'creatChat' || item.path === 'trial-report' || item.path === 'quota-audit' || item.path === 'audit-logs'
     );
 });
 
 const bottomMenuItems = computed<MenuItem[]>(() => {
     return (visibleMenuArr.value as unknown as MenuItem[]).filter((item: MenuItem) => {
-        if (item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'organizations' || item.path === 'creatChat' || item.path === 'trial-report') {
+        if (item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'organizations' || item.path === 'creatChat' || item.path === 'trial-report' || item.path === 'quota-audit' || item.path === 'audit-logs') {
             return false;
         }
         return true;
@@ -1068,6 +1072,10 @@ const handleMenuClick = async (path: string) => {
         router.push('/platform/organizations')
     } else if (path === 'trial-report') {
         router.push('/platform/trial-report')
+    } else if (path === 'quota-audit') {
+        router.push('/platform/quota-audit')
+    } else if (path === 'audit-logs') {
+        router.push('/platform/audit-logs')
     } else if (path === 'settings') {
         // 设置菜单项：打开设置弹窗并跳转路由
         uiStore.openSettings()

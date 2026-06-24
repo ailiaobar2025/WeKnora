@@ -8,6 +8,8 @@ const CUSTOMER_MENU_PATHS = new Set([
 const ADMIN_MENU_PATHS = new Set([
   ...CUSTOMER_MENU_PATHS,
   'trial-report',
+  'quota-audit',
+  'audit-logs',
 ])
 
 const CUSTOMER_SETTINGS_SECTIONS = new Set([
