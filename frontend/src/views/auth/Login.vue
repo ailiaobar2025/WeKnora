@@ -97,8 +97,9 @@
 
     <!-- Logo - Top Left -->
     <a :href="isKnowHubProductMode() ? undefined : 'https://github.com/Tencent/WeKnora'"
-      :target="isKnowHubProductMode() ? undefined : '_blank'" class="header-logo" :title="$t('common.github')">
-      <img :src="isKnowHubProductMode() ? '/icon128.png' : weknoraLogo" :alt="isKnowHubProductMode() ? 'AI聊吧' : 'WeKnora'" class="logo-image" />
+      :target="isKnowHubProductMode() ? undefined : '_blank'" class="header-logo" :title="isKnowHubProductMode() ? '' : $t('common.github')">
+      <img v-if="!isKnowHubProductMode()" :src="weknoraLogo" alt="WeKnora" class="logo-image" />
+      <span v-else class="login-logo-text">AI聊吧</span>
     </a>
 
     <!-- Header Links - Top Right -->
@@ -1147,6 +1148,18 @@ onMounted(async () => {
   .logo-image {
     width: 120px;
     height: auto;
+  }
+
+  .login-logo-text {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 3px;
+    user-select: none;
+    white-space: nowrap;
   }
 }
 

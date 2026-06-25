@@ -3,7 +3,8 @@
         <!-- 展开时：Logo + 搜索/折叠按钮同行 -->
         <div class="logo_row" v-if="!uiStore.sidebarCollapsed">
             <div class="logo_box" @click="router.push('/platform/knowledge-bases')" style="cursor: pointer;">
-                <img class="logo" src="@/assets/img/weknora.png" alt="">
+                <img v-if="!isKnowHubProductMode()" class="logo" src="@/assets/img/weknora.png" alt="">
+                <span v-else class="logo-text logo-text--knowhub">AI聊吧</span>
                 <sup v-if="isLiteEdition" class="lite-badge">Lite</sup>
             </div>
             <div class="logo_actions">
@@ -289,6 +290,7 @@ import { MessagePlugin, DialogPlugin, Icon as TIcon } from "tdesign-vue-next";
 import UserMenu from '@/components/UserMenu.vue';
 import TenantSelector from '@/components/TenantSelector.vue';
 import { useI18n } from 'vue-i18n';
+import { isKnowHubProductMode } from '@/product/knowHub';
 import { getSystemInfo } from '@/api/system';
 
 const chatResources = useChatResourcesStore();
@@ -1986,6 +1988,26 @@ const onDragHandleMouseDown = (e: MouseEvent) => {
 // Dark mode: invert dark logo to light
 html[theme-mode="dark"] .aside_box .logo_box .logo {
     filter: invert(1) hue-rotate(180deg);
+}
+
+// Know Hub 产品模式文字 Logo
+.logo-text--knowhub {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+    user-select: none;
+    white-space: nowrap;
+}
+
+html[theme-mode="dark"] .logo-text--knowhub {
+    background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 // Dark mode: 滚动条在深色背景下需要更亮的颜色才看得见
