@@ -60,7 +60,8 @@ onMounted(loadReport)
 <style scoped>
 .trial-report-page {
   box-sizing: border-box;
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
   padding: 32px;
   background: #f7f8fa;
 }

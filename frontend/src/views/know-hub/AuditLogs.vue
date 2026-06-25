@@ -117,7 +117,8 @@ onMounted(load)
 <style scoped>
 .audit-logs-page {
   box-sizing: border-box;
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
   padding: 32px;
   background: #f7f8fa;
 }
@@ -137,6 +138,7 @@ onMounted(load)
   border: 1px solid #e7e7e7;
   border-radius: 8px;
   background: #fff;
+  overflow-x: auto;
 }
 
 .eyebrow {
@@ -161,6 +163,7 @@ h1 {
 
 .audit-table {
   width: 100%;
+  min-width: 720px;
   border-collapse: collapse;
   font-size: 13px;
 }
