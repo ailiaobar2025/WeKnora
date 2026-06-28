@@ -29,6 +29,16 @@ func (s *stubKnowledgeRepoForChain) GetKnowledgeByID(
 	return s.getByID(ctx, tenantID, id)
 }
 
+func (s *stubKnowledgeRepoForChain) GetKnowledgeTags(
+	_ context.Context, knowledgeIDs []string,
+) (map[string][]*types.KnowledgeTag, error) {
+	result := make(map[string][]*types.KnowledgeTag, len(knowledgeIDs))
+	for _, id := range knowledgeIDs {
+		result[id] = nil
+	}
+	return result, nil
+}
+
 // stubKBServiceForChain mirrors the handler-side stub but lives in the
 // service test package — embedding the interface keeps untouched
 // methods nil-panicky on purpose.

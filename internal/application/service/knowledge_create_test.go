@@ -39,6 +39,17 @@ func (r *createKnowledgeFileRepoStub) CreateKnowledge(ctx context.Context, knowl
 	return r.createErr
 }
 
+func (r *createKnowledgeFileRepoStub) GetKnowledgeTags(
+	ctx context.Context,
+	knowledgeIDs []string,
+) (map[string][]*types.KnowledgeTag, error) {
+	result := make(map[string][]*types.KnowledgeTag, len(knowledgeIDs))
+	for _, id := range knowledgeIDs {
+		result[id] = nil
+	}
+	return result, nil
+}
+
 type createKnowledgeFileKBServiceStub struct {
 	interfaces.KnowledgeBaseService
 
@@ -136,7 +147,7 @@ func TestCreateKnowledgeFromFileDoesNotPersistWhenStorageSaveFails(t *testing.T)
 		nil,
 		nil,
 		"",
-		"",
+		[]string{},
 		"",
 		nil,
 	)
@@ -167,7 +178,7 @@ func TestCreateKnowledgeFromFilePersistsStoredFilePathOnCreate(t *testing.T) {
 		nil,
 		nil,
 		"",
-		"",
+		[]string{},
 		"",
 		nil,
 	)
@@ -201,7 +212,7 @@ func TestCreateKnowledgeFromFileDeletesStoredFileWhenCreateFails(t *testing.T) {
 		nil,
 		nil,
 		"",
-		"",
+		[]string{},
 		"",
 		nil,
 	)
@@ -239,7 +250,7 @@ func TestCreateKnowledgeFromFile_PersistsProcessOverrides(t *testing.T) {
 		map[string]string{"source": "test"},
 		nil,
 		"",
-		"",
+		[]string{},
 		"",
 		overrides,
 	)
