@@ -4,7 +4,7 @@
       <div class="agent-selector-dropdown" :style="dropdownStyle" @click.stop>
         <div class="agent-selector-header">
           <span>{{ $t('agent.selectAgent') }}</span>
-          <router-link to="/platform/agents" class="agent-selector-add" @click="$emit('close')">
+          <router-link v-if="canOpenAgentEditor" to="/platform/agents" class="agent-selector-add" @click="$emit('close')">
             <span class="add-icon">+</span>
             <span class="add-text">{{ $t('agent.manageAgents') }}</span>
           </router-link>
@@ -116,8 +116,10 @@
                 <span class="detail-not-ready-label">{{ $t('agent.selector.notReadyStatus') }}</span>
                 <span v-for="item in activeDetailNotReadyLabels" :key="item" class="detail-not-ready-item">{{ item
                   }}</span>
-                <span v-if="activeDetail.sourceTenantId && activeDetailNotReadyLabels.length"
-                  class="detail-not-ready-shared-hint">{{ $t('agent.selector.sharedNotReadyContact') }}</span>
+                <span v-if="shouldShowNotReadyContactHint(activeDetail.sourceTenantId)"
+                  class="detail-not-ready-shared-hint">{{ activeDetail.sourceTenantId
+                    ? $t('agent.selector.sharedNotReadyContact')
+                    : $t('agent.selector.notReadyContactAdmin') }}</span>
               </div>
             </div>
           </div>
@@ -167,9 +169,12 @@ import { type CustomAgent, BUILTIN_QUICK_ANSWER_ID, BUILTIN_SMART_REASONING_ID }
 import AgentAvatar from '@/components/AgentAvatar.vue';
 import { useOrganizationStore } from '@/stores/organization';
 import { useSettingsStore } from '@/stores/settings';
+import { useAuthStore } from '@/stores/auth';
 import type { SharedAgentInfo } from '@/api/organization';
 import { getRootZoom, rectToCssPx, cssViewportSize } from '@/utils/zoom';
 import { type ModelConfig } from '@/api/model';
+import { isKnowHubAgentConfigurationVisible } from '@/product/knowHubAccess';
+import { isKnowHubProductMode, isKnowHubSystemAdmin } from '@/product/knowHub';
 import {
   getAgentNotReadyReasonKeys,
   resolveAgentNotReadySection,
@@ -183,6 +188,7 @@ const { t, locale } = useI18n();
 const router = useRouter();
 const orgStore = useOrganizationStore();
 const settingsStore = useSettingsStore();
+const authStore = useAuthStore();
 
 const props = defineProps<{
   visible: boolean;
@@ -260,9 +266,19 @@ const activeDetailNotReadyLabels = computed(() => {
   return getAgentNotReadyLabels(detail.agent, detail.sourceTenantId);
 });
 
+const canOpenAgentEditor = computed(() => (
+  !isKnowHubProductMode()
+  || isKnowHubAgentConfigurationVisible(isKnowHubSystemAdmin(authStore))
+));
+
+const shouldShowNotReadyContactHint = (sourceTenantId?: string) => (
+  !!sourceTenantId || !canOpenAgentEditor.value
+);
+
 const canShowDetailHeaderAction = computed(() => {
   const detail = activeDetail.value;
   if (!detail) return false;
+  if (!canOpenAgentEditor.value) return false;
   if (canLocallyConfigureAgent(detail.sourceTenantId)) return true;
   return activeDetailNotReadyLabels.value.length === 0;
 });
@@ -440,6 +456,9 @@ const selectSharedAgent = (shared: SharedAgentInfo) => {
 };
 
 const goToSettings = (agent: CustomAgent, sourceTenantId?: string) => {
+  if (!canOpenAgentEditor.value) {
+    return;
+  }
   if (!canLocallyConfigureAgent(sourceTenantId) && getAgentNotReadyLabels(agent, sourceTenantId).length > 0) {
     return;
   }

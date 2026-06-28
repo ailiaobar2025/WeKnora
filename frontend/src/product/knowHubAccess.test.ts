@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   isKnowHubKnowledgeBaseEditorSectionVisible,
+  isKnowHubAgentConfigurationVisible,
   isKnowHubMenuVisible,
   isKnowHubSettingsSectionVisible,
 } from './knowHubAccess.ts'
@@ -71,4 +72,9 @@ test('knowledge base editor keeps only basic settings in product mode', () => {
   assert.equal(isKnowHubKnowledgeBaseEditorSectionVisible('chunking'), false)
   assert.equal(isKnowHubKnowledgeBaseEditorSectionVisible('graph'), false)
   assert.equal(isKnowHubKnowledgeBaseEditorSectionVisible('advanced'), false)
+})
+
+test('agent configuration is hidden from customer side and available to system admin', () => {
+  assert.equal(isKnowHubAgentConfigurationVisible(false), false)
+  assert.equal(isKnowHubAgentConfigurationVisible(true), true)
 })

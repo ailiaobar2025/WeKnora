@@ -45,3 +45,7 @@ export function isKnowHubSettingsSectionVisible(
 export function isKnowHubKnowledgeBaseEditorSectionVisible(section: string): boolean {
   return section === 'basic'
 }
+
+export function isKnowHubAgentConfigurationVisible(isSystemAdmin = false): boolean {
+  return isSystemAdmin
+}

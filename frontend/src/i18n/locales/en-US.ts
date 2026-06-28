@@ -1154,6 +1154,7 @@ export default {
       notReadyMissing: 'Missing: {items}',
       configureAction: 'Configure',
       sharedNotReadyContact: 'Ask the sharing organization admin to finish setup',
+      notReadyContactAdmin: 'Ask an admin to finish model setup',
     },
     // Built-in agent information
     builtinInfo: {
@@ -2160,6 +2161,7 @@ export default {
     customAgentMissingSummaryModel: 'Chat model',
     customAgentMissingRerankModel: 'Rerank model',
     goToAgentEditor: 'Go to configure →',
+    agentNotReadyContactAdmin: 'Your account cannot configure agent models. Ask an admin to finish setup before using it.',
     agentNotReadyDetail: 'Agent "{agentName}" is not ready. Please configure: {reasons}',
     sharedAgentNotReadyDetail: 'Shared agent "{agentName}" is not ready (missing: {reasons}). Ask the sharing organization admin to finish setup.',
     builtinAgentNotReadyDetail: 'Built-in agent "{agentName}" is not ready. Please configure: {reasons}',

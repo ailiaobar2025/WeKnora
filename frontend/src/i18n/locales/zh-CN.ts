@@ -2146,6 +2146,7 @@ export default {
       notReadyMissing: "缺少 {items}",
       configureAction: "去配置",
       sharedNotReadyContact: "请联系分享方管理员完成配置",
+      notReadyContactAdmin: "请联系管理员完成模型配置",
     },
     // 内置智能体信息
     builtinInfo: {
@@ -3942,6 +3943,7 @@ export default {
     customAgentMissingSummaryModel: "对话模型",
     customAgentMissingRerankModel: "重排模型",
     goToAgentEditor: "前往配置 →",
+    agentNotReadyContactAdmin: "当前账号不能配置智能体模型，请联系管理员完成配置后再使用。",
     agentNotReadyDetail: "智能体「{agentName}」未就绪，需要配置以下内容：{reasons}",
     sharedAgentNotReadyDetail: "共享智能体「{agentName}」尚未就绪（缺少：{reasons}），请联系分享方管理员完成配置。",
     builtinAgentNotReadyDetail: "内置智能体「{agentName}」未就绪，需要配置以下内容：{reasons}",

@@ -7,6 +7,7 @@ import { MessagePlugin } from "tdesign-vue-next";
 import { useSettingsStore } from '@/stores/settings';
 import { useUIStore } from '@/stores/ui';
 import { useMenuStore } from '@/stores/menu';
+import { useAuthStore } from '@/stores/auth';
 import { listKnowledgeBases, searchKnowledge, batchQueryKnowledge } from '@/api/knowledge-base';
 import { stopSession } from '@/api/chat';
 import { useOrganizationStore } from '@/stores/organization';
@@ -34,6 +35,8 @@ import {
   type AgentNotReadyReasonKey,
 } from '@/utils/agent-readiness';
 import { formatLocalizedList } from '@/utils/format-list';
+import { isKnowHubAgentConfigurationVisible } from '@/product/knowHubAccess';
+import { isKnowHubProductMode, isKnowHubSystemAdmin } from '@/product/knowHub';
 
 const route = useRoute();
 const router = useRouter();
@@ -41,6 +44,7 @@ const settingsStore = useSettingsStore();
 const uiStore = useUIStore();
 const orgStore = useOrganizationStore();
 const menuStore = useMenuStore();
+const authStore = useAuthStore();
 const chatResources = useChatResourcesStore();
 const {
   agents,
@@ -50,6 +54,11 @@ const {
   webSearchProviders,
 } = storeToRefs(chatResources);
 const { t, locale } = useI18n();
+
+const canOpenAgentEditor = computed(() => (
+  !isKnowHubProductMode()
+  || isKnowHubAgentConfigurationVisible(isKnowHubSystemAdmin(authStore))
+));
 
 let query = ref("");
 const showKbSelector = ref(false);
@@ -2029,6 +2038,9 @@ const goToAgentEditor = (
   highlight?: AgentNotReadyReasonKey,
   sourceTenantId?: string,
 ) => {
+  if (!canOpenAgentEditor.value) {
+    return;
+  }
   router.push({
     path: '/platform/agents',
     query: {
@@ -2049,6 +2061,7 @@ const showAgentNotReadyMessage = (
 ) => {
   const reasonsText = formatLocalizedList(reasons, locale.value)
   const isRemoteShared = !canLocallyConfigureAgent(sourceTenantId)
+  const canConfigureThisAgent = canOpenAgentEditor.value && !isRemoteShared
 
   const messageContent = h('div', { style: 'display: flex; flex-direction: column; gap: 8px; max-width: 320px;' }, [
     h(
@@ -2058,7 +2071,7 @@ const showAgentNotReadyMessage = (
         ? t('input.sharedAgentNotReadyDetail', { agentName: agent.name, reasons: reasonsText })
         : t('input.agentNotReadyDetail', { agentName: agent.name, reasons: reasonsText }),
     ),
-    ...(isRemoteShared ? [] : [
+    ...(canConfigureThisAgent ? [
       h('a', {
         href: '#',
         onClick: (e: Event) => {
@@ -2075,7 +2088,14 @@ const showAgentNotReadyMessage = (
           (e.target as HTMLElement).style.textDecoration = 'none';
         }
       }, t('input.goToAgentEditor')),
-    ]),
+    ] : []),
+    ...(!isRemoteShared && !canOpenAgentEditor.value ? [
+      h(
+        'span',
+        { style: 'color: var(--td-text-color-secondary); line-height: 1.5;' },
+        t('input.agentNotReadyContactAdmin'),
+      ),
+    ] : []),
   ]);
 
   MessagePlugin.warning({
