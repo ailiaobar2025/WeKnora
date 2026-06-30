@@ -128,7 +128,14 @@ import { useKnowledgeBaseCreationNavigation } from '@/hooks/useKnowledgeBaseCrea
 import { useChatStreamHandler } from '@/composables/useChatStreamHandler';
 import { useStickyBottomOnResize } from '@/composables/useStickyBottomOnResize';
 import { clearCitationChunkCache } from '@/utils/citationChunkCache';
-import { resolveKnowHubChatEndpoint } from '@/product/knowHub';
+import {
+    isKnowHubProductMode,
+    isKnowHubSystemAdmin,
+    resolveKnowHubAssistantChatEndpoint,
+    resolveKnowHubChatEndpoint,
+} from '@/product/knowHub';
+import { isKnowHubAgentConfigurationVisible } from '@/product/knowHubAccess';
+import { useAuthStore } from '@/stores/auth';
 
 const props = defineProps({
     session_id: { type: String, default: '' },
@@ -139,6 +146,11 @@ const props = defineProps({
 
 const usemenuStore = useMenuStore();
 const useSettingsStoreInstance = useSettingsStore();
+const authStore = useAuthStore();
+const useCustomerAssistantMode = computed(() => (
+    isKnowHubProductMode()
+    && !isKnowHubAgentConfigurationVisible(isKnowHubSystemAdmin(authStore))
+));
 
 // Whether the active chat session is using the Agent pipeline (not quick-answer).
 const isAgentStreamSession = () => {
@@ -659,7 +671,13 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
     // Get selected agent ID (backend resolves shared agent and its tenant from share relation)
     const selectedAgentId = props.embeddedMode ? props.agentId : (useSettingsStoreInstance.selectedAgentId || '');
 
-    const endpoint = resolveKnowHubChatEndpoint(agentEnabled ? '/api/v1/agent-chat' : '/api/v1/knowledge-chat');
+    const selectedCustomerAssistantId = props.embeddedMode || !useCustomerAssistantMode.value
+        ? ''
+        : (useSettingsStoreInstance.selectedCustomerAssistantId || '');
+    const assistantEndpoint = selectedCustomerAssistantId
+        ? resolveKnowHubAssistantChatEndpoint(selectedCustomerAssistantId)
+        : '';
+    const endpoint = assistantEndpoint || resolveKnowHubChatEndpoint(agentEnabled ? '/api/v1/agent-chat' : '/api/v1/knowledge-chat');
 
     // Get selected MCP services from settings store (if available)
     const mcpServiceIds = props.embeddedMode ? [] : (useSettingsStoreInstance.settings.selectedMCPServices || []);
@@ -669,7 +687,7 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
         knowledge_base_ids: kbIds,
         knowledge_ids: knowledgeIds,
         agent_enabled: agentEnabled,
-        agent_id: selectedAgentId,
+        agent_id: assistantEndpoint ? undefined : selectedAgentId,
         web_search_enabled: webSearchEnabled,
         enable_memory: enableMemoryOverride,
         summary_model_id: modelId,

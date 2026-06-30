@@ -72,3 +72,9 @@ export function resolveKnowHubChatEndpoint(defaultEndpoint: string): string {
   const chatKind = defaultEndpoint.includes('agent-chat') ? 'agent' : 'knowledge'
   return `${backendBase}/api/v1/chat/stream/${chatKind}`
 }
+
+export function resolveKnowHubAssistantChatEndpoint(assistantId: string): string {
+  const backendBase = (import.meta.env.VITE_KNOW_HUB_BACKEND_BASE_URL || '').replace(/\/$/, '')
+  if (!backendBase || !assistantId) return ''
+  return `${backendBase}/api/v1/chat/stream/assistant/${assistantId}`
+}

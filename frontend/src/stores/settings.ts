@@ -22,6 +22,7 @@ interface Settings {
   conversationModels: ConversationModels;
   selectedAgentId: string;  // 当前选中的智能体ID
   selectedAgentSourceTenantId: string | null;  // 当使用共享智能体时，来源租户 ID（用于后端 model/KB/MCP 解析）
+  selectedCustomerAssistantId: string; // Know Hub 产品模式下当前选中的客户助手 ID
   autoCheckUpdate?: boolean; // 是否自动检查并下载更新
 }
 
@@ -100,6 +101,7 @@ const defaultSettings: Settings = {
   },
   selectedAgentId: BUILTIN_QUICK_ANSWER_ID,  // 默认选中快速问答模式
   selectedAgentSourceTenantId: null as string | null,  // 共享智能体来源租户 ID
+  selectedCustomerAssistantId: "",
   autoCheckUpdate: true,
 };
 
@@ -183,6 +185,9 @@ export const useSettingsStore = defineStore("settings", {
     selectedAgentId: (state) => state.settings.selectedAgentId || BUILTIN_QUICK_ANSWER_ID,
     // 共享智能体来源租户 ID（可选）
     selectedAgentSourceTenantId: (state) => state.settings.selectedAgentSourceTenantId ?? null,
+
+    // Know Hub 产品模式下当前选择的客户助手
+    selectedCustomerAssistantId: (state) => state.settings.selectedCustomerAssistantId || "",
   },
 
   actions: {
@@ -446,6 +451,11 @@ export const useSettingsStore = defineStore("settings", {
       return this.settings.selectedAgentId || BUILTIN_QUICK_ANSWER_ID;
     },
 
+    selectCustomerAssistant(assistantId: string) {
+      this.settings.selectedCustomerAssistantId = assistantId;
+      localStorage.setItem("WeKnora_settings", JSON.stringify(this.settings));
+    },
+
     // —— 会话级输入态恢复 —— //
     //
     // 输入栏的 agent / 模型 / KB / 联网 / MCP 等选择由本 store 持有，跨会话共享。
@@ -502,6 +512,9 @@ export const useSettingsStore = defineStore("settings", {
         if (typeof state.web_search_enabled === "boolean") {
           this.settings.webSearchEnabled = state.web_search_enabled;
         }
+        if (typeof state.customer_assistant_id === "string") {
+          this.settings.selectedCustomerAssistantId = state.customer_assistant_id;
+        }
       } finally {
         // 复位必须延后到下一次 flush 之后：监听 selectedAgentId 的 watcher 默认
         // flush:'pre'，是异步执行的；若在此处同步复位，watcher 真正运行时标志早已
@@ -527,5 +540,6 @@ export interface SessionLastRequestStatePayload {
   knowledge_base_ids?: string[];
   knowledge_ids?: string[];
   web_search_enabled?: boolean;
+  customer_assistant_id?: string;
 }
  

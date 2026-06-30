@@ -27,7 +27,9 @@ export const useMenuStore = defineStore('menuStore', () => {
       childrenPath: 'chat',
       children: createMenuChildren()
     },
+    { title: '', titleKey: 'menu.myAssistants', icon: 'agent', path: 'my-assistants' },
     { title: '', titleKey: 'menu.knowledgeBase', icon: 'zhishiku', path: 'knowledge-bases' },
+    { title: '', titleKey: 'menu.customerAssistants', icon: 'agent', path: 'customer-assistants' },
     { title: '', titleKey: 'menu.trialReport', icon: 'setting', path: 'trial-report' },
     { title: '', titleKey: 'menu.quotaAudit', icon: 'setting', path: 'quota-audit' },
     { title: '', titleKey: 'menu.auditLogs', icon: 'setting', path: 'audit-logs' },

@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/stores/auth'
+import { getStoredEffectiveTenantId } from '@/utils/tenantContext.ts'
 
 export interface KnowHubReportResponse {
   workspace_id: string
@@ -29,25 +30,9 @@ function getKnowHubBackendBaseUrl(): string {
 
 async function requestKnowHub<T>(path: string, init: RequestInit = {}): Promise<T> {
   const authStore = useAuthStore()
-
-  // 改进的 tenantId 获取逻辑
-  let tenantId: string | null = null
-
-  // 优先使用 effectiveTenantId，如果为 null/undefined，尝试其他方式
-  if (authStore.effectiveTenantId) {
-    tenantId = String(authStore.effectiveTenantId)
-  } else if (authStore.currentTenantId) {
-    tenantId = String(authStore.currentTenantId)
-  } else if (authStore.tenant?.id) {
-    tenantId = String(authStore.tenant.id)
-  }
-
-  // 如果还是没有找到，尝试从 localStorage 读取
-  if (!tenantId) {
-    const selectedTenantId = localStorage.getItem('weknora_selected_tenant_id')
-    const currentTenantId = localStorage.getItem('weknora_current_tenant_id')
-    tenantId = selectedTenantId || currentTenantId || null
-  }
+  const tenantId =
+    getStoredEffectiveTenantId() ||
+    (authStore.effectiveTenantId ? String(authStore.effectiveTenantId) : null)
 
   const token = authStore.token || localStorage.getItem('weknora_token') || ''
   const url = `${getKnowHubBackendBaseUrl()}${path}`
@@ -55,7 +40,6 @@ async function requestKnowHub<T>(path: string, init: RequestInit = {}): Promise<
 
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
-  // 确保设置 X-Tenant-ID 和 X-WeKnora-Tenant-Id
   if (tenantId) {
     headers.set('X-Tenant-ID', tenantId)
     headers.set('X-WeKnora-Tenant-Id', tenantId)
@@ -72,6 +56,9 @@ async function requestKnowHub<T>(path: string, init: RequestInit = {}): Promise<
     const payload = await response.json().catch(() => ({}))
     throw new Error(payload.detail || payload.message || `Know Hub request failed: ${response.status}`)
   }
+  if (response.status === 204) {
+    return undefined as T
+  }
   return response.json() as Promise<T>
 }
 
@@ -85,6 +72,148 @@ export function getAdminReports(): Promise<KnowHubAdminReportsResponse> {
 
 export function bootstrapKnowHubWorkspace() {
   return requestKnowHub('/api/v1/me/bootstrap', { method: 'POST' })
+}
+
+export type JsonObject = Record<string, any>
+
+export interface KnowHubAgentTemplate {
+  id: string
+  name: string
+  description: string
+  system_prompt: string
+  knowledge_scope: JsonObject
+  agent_config: JsonObject
+  quota_strategy: JsonObject
+  status: string
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface KnowHubAgentTemplatePayload {
+  name: string
+  description?: string
+  system_prompt?: string
+  knowledge_scope?: JsonObject
+  agent_config?: JsonObject
+  quota_strategy?: JsonObject
+  status?: string
+}
+
+export function getAgentTemplates(): Promise<KnowHubAgentTemplate[]> {
+  return requestKnowHub<KnowHubAgentTemplate[]>('/api/v1/admin/agent-templates')
+}
+
+export function createAgentTemplate(payload: KnowHubAgentTemplatePayload): Promise<KnowHubAgentTemplate> {
+  return requestKnowHub<KnowHubAgentTemplate>('/api/v1/admin/agent-templates', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export function updateAgentTemplate(
+  templateId: string,
+  payload: Partial<KnowHubAgentTemplatePayload>,
+): Promise<KnowHubAgentTemplate> {
+  return requestKnowHub<KnowHubAgentTemplate>(`/api/v1/admin/agent-templates/${templateId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export function deleteAgentTemplate(templateId: string): Promise<void> {
+  return requestKnowHub<void>(`/api/v1/admin/agent-templates/${templateId}`, {
+    method: 'DELETE',
+  })
+}
+
+export interface KnowHubCustomerAssistant {
+  id: string
+  workspace_id: string
+  template_id: string
+  template_name?: string
+  name: string
+  display_name: string
+  status: string
+  system_prompt: string | null
+  knowledge_scope: JsonObject | null
+  agent_config: JsonObject | null
+  quota_strategy: JsonObject | null
+  created_at: string | null
+}
+
+export interface KnowHubCustomerAssistantBrief {
+  id: string
+  name: string
+  display_name: string
+  status: string
+  description?: string
+}
+
+export interface KnowHubCustomerAssistantPayload {
+  name: string
+  display_name?: string
+  template_id: string
+  system_prompt?: string | null
+  knowledge_scope?: JsonObject | null
+  agent_config?: JsonObject | null
+  quota_strategy?: JsonObject | null
+}
+
+export interface KnowHubCustomerAssistantUpdatePayload {
+  name?: string
+  display_name?: string
+  status?: string
+  system_prompt?: string | null
+  knowledge_scope?: JsonObject | null
+  agent_config?: JsonObject | null
+  quota_strategy?: JsonObject | null
+}
+
+export function getWorkspaceCustomerAssistants(workspaceId: string): Promise<KnowHubCustomerAssistant[]> {
+  return requestKnowHub<KnowHubCustomerAssistant[]>(
+    `/api/v1/admin/workspaces/${workspaceId}/customer-assistants`,
+  )
+}
+
+export function createWorkspaceCustomerAssistant(
+  workspaceId: string,
+  payload: KnowHubCustomerAssistantPayload,
+): Promise<KnowHubCustomerAssistant> {
+  return requestKnowHub<KnowHubCustomerAssistant>(
+    `/api/v1/admin/workspaces/${workspaceId}/customer-assistants`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  )
+}
+
+export function updateCustomerAssistant(
+  assistantId: string,
+  payload: KnowHubCustomerAssistantUpdatePayload,
+): Promise<KnowHubCustomerAssistant> {
+  return requestKnowHub<KnowHubCustomerAssistant>(`/api/v1/admin/customer-assistants/${assistantId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export function deleteCustomerAssistant(assistantId: string): Promise<void> {
+  return requestKnowHub<void>(`/api/v1/admin/customer-assistants/${assistantId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function getMyCustomerAssistants(): Promise<KnowHubCustomerAssistantBrief[]> {
+  return requestKnowHub<KnowHubCustomerAssistantBrief[]>('/api/v1/me/customer-assistants')
+}
+
+export function resolveAssistantStreamEndpoint(assistantId: string): string {
+  return `${getKnowHubBackendBaseUrl()}/api/v1/chat/stream/assistant/${assistantId}`
 }
 
 export interface KnowHubWorkspaceDetail {

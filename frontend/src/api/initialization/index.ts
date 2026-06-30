@@ -1,4 +1,5 @@
 import { get, post, put } from '../../utils/request';
+import { getStoredEffectiveTenantId } from '@/utils/tenantContext.ts';
 import i18n from '@/i18n'
 
 const t = (key: string) => i18n.global.t(key)
@@ -438,12 +439,9 @@ export function testMultimodalFunction(testData: {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        // 跨租户访问请求头：直接附，避免 short-circuit "selectedTenantId
-        // === defaultTenantId 时不附" 在某些边角下让 header 静默丢失。
-        // 与 utils/request.ts、api/chat/streame.ts 行为一致。
-        const selectedTenantId = localStorage.getItem('weknora_selected_tenant_id');
-        if (selectedTenantId) {
-            headers['X-Tenant-ID'] = selectedTenantId;
+        const tenantId = getStoredEffectiveTenantId();
+        if (tenantId) {
+            headers['X-Tenant-ID'] = tenantId;
         }
 
         // 使用原生fetch因为需要发送FormData

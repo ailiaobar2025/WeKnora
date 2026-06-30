@@ -402,6 +402,10 @@ const isMenuItemActive = (itemPath: string): boolean => {
             return currentRoute === 'organizationList';
         case 'creatChat':
             return currentRoute === 'kbCreatChat' || currentRoute === 'globalCreatChat';
+        case 'my-assistants':
+            return currentRoute === 'myAssistants';
+        case 'customer-assistants':
+            return currentRoute === 'customerAssistants';
         case 'trial-report':
             return currentRoute === 'trialReport';
         case 'quota-audit':
@@ -434,13 +438,13 @@ const getIconActiveState = (itemPath: string) => {
 // 分离上下两部分菜单（使用 visibleMenuArr 以便 lite 模式过滤 logout）
 const topMenuItems = computed<MenuItem[]>(() => {
     return (visibleMenuArr.value as unknown as MenuItem[]).filter((item: MenuItem) =>
-        item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'integrations' || item.path === 'organizations' || item.path === 'creatChat' || item.path === 'trial-report' || item.path === 'quota-audit' || item.path === 'audit-logs'
+        item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'integrations' || item.path === 'organizations' || item.path === 'creatChat' || item.path === 'my-assistants' || item.path === 'customer-assistants' || item.path === 'trial-report' || item.path === 'quota-audit' || item.path === 'audit-logs'
     );
 });
 
 const bottomMenuItems = computed<MenuItem[]>(() => {
     return (visibleMenuArr.value as unknown as MenuItem[]).filter((item: MenuItem) => {
-        if (item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'integrations' || item.path === 'organizations' || item.path === 'creatChat' || item.path === 'trial-report' || item.path === 'quota-audit' || item.path === 'audit-logs') {
+        if (item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'integrations' || item.path === 'organizations' || item.path === 'creatChat' || item.path === 'my-assistants' || item.path === 'customer-assistants' || item.path === 'trial-report' || item.path === 'quota-audit' || item.path === 'audit-logs') {
             return false;
         }
         return true;
@@ -1070,6 +1074,10 @@ const handleMenuClick = async (path: string) => {
     } else if (path === 'organizations') {
         // 组织菜单项：跳转到组织列表
         router.push('/platform/organizations')
+    } else if (path === 'my-assistants') {
+        router.push('/platform/my-assistants')
+    } else if (path === 'customer-assistants') {
+        router.push('/platform/customer-assistants')
     } else if (path === 'trial-report') {
         router.push('/platform/trial-report')
     } else if (path === 'quota-audit') {

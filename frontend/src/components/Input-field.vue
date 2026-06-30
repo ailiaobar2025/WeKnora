@@ -14,6 +14,7 @@ import { useOrganizationStore } from '@/stores/organization';
 import KnowledgeBaseSelector from './KnowledgeBaseSelector.vue';
 import MentionSelector from './MentionSelector.vue';
 import AgentSelector from './AgentSelector.vue';
+import CustomerAssistantSelector from './CustomerAssistantSelector.vue';
 import { getCaretCoordinates } from '@/utils/caret';
 import { getRootZoom, rectToCssPx, cssViewportSize } from '@/utils/zoom';
 import { type ModelConfig } from '@/api/model';
@@ -37,6 +38,10 @@ import {
 import { formatLocalizedList } from '@/utils/format-list';
 import { isKnowHubAgentConfigurationVisible } from '@/product/knowHubAccess';
 import { isKnowHubProductMode, isKnowHubSystemAdmin } from '@/product/knowHub';
+import {
+  getMyCustomerAssistants,
+  type KnowHubCustomerAssistantBrief,
+} from '@/api/know-hub';
 
 const route = useRoute();
 const router = useRouter();
@@ -58,6 +63,10 @@ const { t, locale } = useI18n();
 const canOpenAgentEditor = computed(() => (
   !isKnowHubProductMode()
   || isKnowHubAgentConfigurationVisible(isKnowHubSystemAdmin(authStore))
+));
+const useCustomerAssistantMode = computed(() => (
+  isKnowHubProductMode()
+  && !isKnowHubAgentConfigurationVisible(isKnowHubSystemAdmin(authStore))
 ));
 
 let query = ref("");
@@ -147,6 +156,9 @@ const atButtonRef = ref<HTMLElement>();
 const showAgentModeSelector = ref(false);
 const agentModeButtonRef = ref<HTMLElement>();
 const agentModeDropdownStyle = ref<Record<string, string>>({});
+const customerAssistants = ref<KnowHubCustomerAssistantBrief[]>([]);
+const loadingCustomerAssistants = ref(false);
+const customerAssistantLoadError = ref('');
 
 const selectedAgentId = computed({
   get: () => settingsStore.selectedAgentId || BUILTIN_QUICK_ANSWER_ID,
@@ -173,6 +185,15 @@ const selectedAgent = computed(() => {
     config: { agent_mode: 'quick-answer' as const }
   } as CustomAgent;
 });
+const selectedCustomerAssistantId = computed(() => settingsStore.selectedCustomerAssistantId);
+const activeCustomerAssistants = computed(() =>
+  customerAssistants.value.filter((assistant) => assistant.status === 'active')
+);
+const selectedCustomerAssistant = computed(() => (
+  activeCustomerAssistants.value.find((assistant) => assistant.id === selectedCustomerAssistantId.value)
+  || activeCustomerAssistants.value[0]
+  || null
+));
 
 // 判断是否为自定义智能体（非内置）
 const isCustomAgent = computed(() => {
@@ -539,6 +560,12 @@ const remainingCount = computed(() => Math.max(0, selectedKbs.value.length - 2))
 
 // 根据不同状态组合计算输入框的 placeholder
 const inputPlaceholder = computed(() => {
+  if (useCustomerAssistantMode.value && selectedCustomerAssistant.value) {
+    return t('input.placeholderAssistant', {
+      name: selectedCustomerAssistant.value.display_name || selectedCustomerAssistant.value.name,
+    });
+  }
+
   // 如果选择了自定义智能体
   if (isCustomAgent.value && selectedAgent.value) {
     // 有描述时显示描述，否则显示"向 [名称] 提问"
@@ -565,6 +592,25 @@ const inputPlaceholder = computed(() => {
     return t('input.placeholder');
   }
 });
+
+const loadCustomerAssistants = async () => {
+  if (!useCustomerAssistantMode.value || loadingCustomerAssistants.value) return;
+  loadingCustomerAssistants.value = true;
+  customerAssistantLoadError.value = '';
+  try {
+    customerAssistants.value = await getMyCustomerAssistants();
+    const active = activeCustomerAssistants.value;
+    if (active.length && !active.some((assistant) => assistant.id === settingsStore.selectedCustomerAssistantId)) {
+      settingsStore.selectCustomerAssistant(active[0].id);
+    }
+  } catch (error) {
+    console.error('Failed to load customer assistants:', error);
+    customerAssistants.value = [];
+    customerAssistantLoadError.value = t('input.assistantSelector.loadFailed');
+  } finally {
+    loadingCustomerAssistants.value = false;
+  }
+};
 
 // 加载知识库列表（自己的 + 共享的，用于 @ 提及等）
 const loadKnowledgeBases = async (force = false) => {
@@ -1514,6 +1560,7 @@ onMounted(() => {
     loadWebSearchConfig(),
     loadChatModels(),
     loadAgents(),
+    loadCustomerAssistants(),
   ]);
   window.addEventListener(CHAT_FILE_DROP_EVENT, handleChatFileDrop as EventListener);
 
@@ -1630,6 +1677,15 @@ const createSession = async (val: string) => {
     await loadChatModels()
   }
 
+  if (useCustomerAssistantMode.value) {
+    if (!selectedCustomerAssistant.value) {
+      await loadCustomerAssistants();
+    }
+    if (!selectedCustomerAssistant.value) {
+      MessagePlugin.warning(customerAssistantLoadError.value || t('input.assistantSelector.empty'));
+      return;
+    }
+  } else {
   // 发送前校验当前选中的智能体（含默认快速问答）是否已配置完成
   const agentToCheck = selectedAgent.value;
   let actualAgent = agentToCheck;
@@ -1655,6 +1711,7 @@ const createSession = async (val: string) => {
       settingsStore.selectedAgentSourceTenantId ?? undefined,
     );
     return;
+  }
   }
   // 获取@提及的知识库和文件信息
   const mentionedItems = allSelectedItems.value.map(item => ({
@@ -1775,7 +1832,9 @@ const toggleAgentModeSelector = () => {
 
   showAgentModeSelector.value = !showAgentModeSelector.value;
   if (showAgentModeSelector.value) {
-    if (!chatResources.isFresh('agents')) {
+    if (useCustomerAssistantMode.value) {
+      void loadCustomerAssistants();
+    } else if (!chatResources.isFresh('agents')) {
       void loadAgents(true);
     }
     // 多次更新位置确保准确
@@ -1790,6 +1849,13 @@ const toggleAgentModeSelector = () => {
     });
   }
 }
+
+const handleSelectCustomerAssistant = (assistant: KnowHubCustomerAssistantBrief) => {
+  settingsStore.selectCustomerAssistant(assistant.id);
+  MessagePlugin.success(t('input.messages.assistantSelected', {
+    name: assistant.display_name || assistant.name,
+  }));
+};
 
 const selectAgentMode = async (mode: 'quick-answer' | 'smart-reasoning') => {
   if (!chatResources.isFresh('models')) {
@@ -2249,10 +2315,12 @@ defineExpose({
           <div ref="agentModeButtonRef" class="control-btn agent-mode-btn" :class="{
             'is-normal': !isCustomAgent && !isAgentEnabled,
             'is-agent': !isCustomAgent && isAgentEnabled,
-            'is-custom': isCustomAgent
+            'is-custom': isCustomAgent || useCustomerAssistantMode
           }" @click.stop="toggleAgentModeSelector">
             <span class="agent-mode-text">
-              {{ selectedAgent.name || (isAgentEnabled ? $t('input.agentMode') : $t('input.normalMode')) }}
+              {{ useCustomerAssistantMode
+                ? (selectedCustomerAssistant?.display_name || selectedCustomerAssistant?.name || $t('input.assistantMode'))
+                : (selectedAgent.name || (isAgentEnabled ? $t('input.agentMode') : $t('input.normalMode'))) }}
             </span>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" class="dropdown-arrow"
               :class="{ 'rotate': showAgentModeSelector }">
@@ -2260,8 +2328,13 @@ defineExpose({
             </svg>
           </div>
 
+          <CustomerAssistantSelector v-if="useCustomerAssistantMode" :visible="showAgentModeSelector"
+            :anchorEl="agentModeButtonRef" :currentAssistantId="selectedCustomerAssistantId"
+            :assistants="activeCustomerAssistants" @close="closeAgentModeSelector"
+            @select="handleSelectCustomerAssistant" />
+
           <!-- Agent 选择器下拉菜单 -->
-          <AgentSelector :visible="showAgentModeSelector" :anchorEl="agentModeButtonRef"
+          <AgentSelector v-else :visible="showAgentModeSelector" :anchorEl="agentModeButtonRef"
             :currentAgentId="selectedAgentId" :agents="enabledAgents" :all-models="allModels"
             @close="closeAgentModeSelector" @select="handleSelectAgent" @not-ready="handleAgentNotReady" />
 

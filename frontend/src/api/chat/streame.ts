@@ -3,6 +3,7 @@ import { ref, onUnmounted } from 'vue';
 import { generateRandomString } from '@/utils/index';
 import i18n from '@/i18n';
 import { getApiBaseUrl } from '@/utils/api-base';
+import { getStoredEffectiveTenantId } from '@/utils/tenantContext.ts';
 import {
   sanitizeStreamRequestBody,
   type StreamRequestMeta,
@@ -62,8 +63,7 @@ export function useStream() {
     // hydrate）都会让两者相等，使得后续流式请求悄悄丢 header、落到
     // home 租户上，导致 SSE 接口返回 404。直接附即可——后端
     // IsTenantAccessible 也允许 header 指向自家租户。
-    const selectedTenantId = localStorage.getItem('weknora_selected_tenant_id');
-    const tenantIdHeader: string | null = selectedTenantId || getHomeTenantId();
+    const tenantIdHeader: string | null = getStoredEffectiveTenantId() || getHomeTenantId();
 
     // TTFB instrumentation: record the moment we kick off the request so
     // we can compare it with the first answer chunk we receive from the

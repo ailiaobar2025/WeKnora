@@ -146,6 +146,12 @@ const router = createRouter({
           meta: { requiresInit: true, requiresAuth: true }
         },
         {
+          path: "my-assistants",
+          name: "myAssistants",
+          component: () => import("../views/know-hub/MyAssistants.vue"),
+          meta: { requiresInit: true, requiresAuth: true }
+        },
+        {
           path: "knowledge-bases/:kbId/creatChat",
           name: "kbCreatChat",
           component: () => import("../views/creatChat/creatChat.vue"),
@@ -155,6 +161,12 @@ const router = createRouter({
           path: "trial-report",
           name: "trialReport",
           component: () => import("../views/know-hub/TrialReport.vue"),
+          meta: { requiresInit: true, requiresAuth: true, requiresKnowHubAdmin: true }
+        },
+        {
+          path: "customer-assistants",
+          name: "customerAssistants",
+          component: () => import("../views/know-hub/CustomerAssistantAdmin.vue"),
           meta: { requiresInit: true, requiresAuth: true, requiresKnowHubAdmin: true }
         },
         {

@@ -6,6 +6,8 @@ export default {
     organizations: "공유 스페이스",
     chat: "대화",
     newChat: "새 대화",
+    myAssistants: "내 어시스턴트",
+    customerAssistants: "고객 어시스턴트",
     trialReport: "평가 보고서",
     quotaAudit: "할당량 감사",
     auditLogs: "감사 로그",

@@ -3,6 +3,8 @@ export default {
     knowledgeBase: 'База знаний',
     chat: 'Диалог',
     newChat: 'Новый диалог',
+    myAssistants: 'Мои ассистенты',
+    customerAssistants: 'Ассистенты клиентов',
     trialReport: 'Отчет о пробном периоде',
     quotaAudit: 'Аудит квот',
     auditLogs: 'Журнал аудита',

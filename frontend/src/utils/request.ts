@@ -3,6 +3,7 @@ import axios from "axios";
 import { generateRandomString, MAX_FILE_SIZE_MB } from "./index";
 import i18n from '@/i18n'
 import { getApiBaseUrl } from './api-base';
+import { getStoredEffectiveTenantId } from './tenantContext.ts';
 
 const t = (key: string) => i18n.global.t(key)
 
@@ -84,17 +85,7 @@ function isPublicAuthRequest(url?: string): boolean {
 }
 
 function effectiveTenantId(): string | null {
-  const selectedTenantId = localStorage.getItem('weknora_selected_tenant_id');
-  if (selectedTenantId) return selectedTenantId;
-  try {
-    const raw = localStorage.getItem('weknora_tenant');
-    if (!raw) return null;
-    const tenant = JSON.parse(raw);
-    const id = tenant?.id;
-    return id !== undefined && id !== null && String(id).trim() ? String(id) : null;
-  } catch {
-    return null;
-  }
+  return getStoredEffectiveTenantId();
 }
 
 // 处理队列中的请求

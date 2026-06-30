@@ -10,8 +10,10 @@ import {
 
 test('customer menu excludes trial reports and technical entries', () => {
   assert.equal(isKnowHubMenuVisible('creatChat', false), true)
+  assert.equal(isKnowHubMenuVisible('my-assistants', false), false)
   assert.equal(isKnowHubMenuVisible('knowledge-bases', false), true)
   assert.equal(isKnowHubMenuVisible('settings', false), true)
+  assert.equal(isKnowHubMenuVisible('customer-assistants', false), false)
   assert.equal(isKnowHubMenuVisible('trial-report', false), false)
   assert.equal(isKnowHubMenuVisible('quota-audit', false), false)
   assert.equal(isKnowHubMenuVisible('audit-logs', false), false)
@@ -19,6 +21,8 @@ test('customer menu excludes trial reports and technical entries', () => {
 })
 
 test('limited admin menu includes trial reports but keeps technical entries hidden', () => {
+  assert.equal(isKnowHubMenuVisible('my-assistants', true), false)
+  assert.equal(isKnowHubMenuVisible('customer-assistants', true), true)
   assert.equal(isKnowHubMenuVisible('trial-report', true), true)
   assert.equal(isKnowHubMenuVisible('quota-audit', true), true)
   assert.equal(isKnowHubMenuVisible('audit-logs', true), true)

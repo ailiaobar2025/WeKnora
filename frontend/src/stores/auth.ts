@@ -11,6 +11,7 @@ import { BUILTIN_QUICK_ANSWER_ID } from '@/api/agent'
 import { useChatResourcesStore } from '@/stores/chatResources'
 import { useEditorResourcesStore } from '@/stores/editorResources'
 import { useOrganizationStore } from '@/stores/organization'
+import { clearStaleSelectedTenant } from '@/utils/tenantContext.ts'
 
 /** 登出时丢弃 Pinia 内的租户级资源缓存，避免 SPA 重登复用上一账号数据。 */
 function clearSessionResourceCaches() {
@@ -98,6 +99,12 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.can_access_all_tenants || false
   })
 
+  const canUseSelectedTenant = (tenantId: number | null) => {
+    if (tenantId === null || tenantId === undefined) return false
+    const selectedTenantIdText = String(tenantId)
+    return memberships.value.some((m) => String(m.tenant_id) === selectedTenantIdText)
+  }
+
   // isSystemAdmin reflects the platform-wide system-administrator flag
   // (User.IsSystemAdmin on the server). It is independent of per-tenant
   // Owner/Admin/Contributor/Viewer roles — a system admin can manage
@@ -173,8 +180,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const effectiveTenantId = computed(() => {
-    // 如果选择了其他租户，使用选择的租户ID，否则使用用户默认租户ID
-    return selectedTenantId.value || (tenant.value?.id ? Number(tenant.value.id) : null)
+    if (canUseSelectedTenant(selectedTenantId.value)) return selectedTenantId.value
+    if (user.value?.tenant_id) return Number(user.value.tenant_id)
+    return tenant.value?.id ? Number(tenant.value.id) : null
   })
 
   // 操作方法
@@ -492,6 +500,12 @@ export const useAuthStore = defineStore('auth', () => {
         console.error('Failed to parse memberships', e)
         memberships.value = []
       }
+    }
+
+    if (selectedTenantId.value !== null && !canUseSelectedTenant(selectedTenantId.value)) {
+      selectedTenantId.value = null
+      selectedTenantName.value = null
+      clearStaleSelectedTenant()
     }
 
     isLiteMode.value = localStorage.getItem('weknora_lite_mode') === 'true'

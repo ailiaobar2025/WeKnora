@@ -9,6 +9,7 @@ import {
   domPurifySecurityOptions,
   markdownDomPurifyConfig,
 } from './markdownDomPurify.ts';
+import { getStoredEffectiveTenantId } from './tenantContext.ts';
 
 const PROVIDER_IMAGE_PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 const PROVIDER_FILE_SCHEME_RE = /^(local|minio|cos|tos|s3|oss|ks3|obs):\/\/\S+$/i;
@@ -362,15 +363,9 @@ function getProtectedFileRequestHeaders(): Record<string, string> {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const selectedTenantId = (localStorage.getItem('weknora_selected_tenant_id') || '').trim();
-    if (selectedTenantId) {
-      // Always attach when a selected tenant is set. Same rationale as
-      // utils/request.ts / api/chat/streame.ts: the
-      // "selectedTenantId === defaultTenantId → skip" short-circuit
-      // silently drops the header whenever any code path writes the
-      // active tenant into weknora_tenant, leaving authenticated file
-      // fetches landing on the home tenant.
-      headers['X-Tenant-ID'] = selectedTenantId;
+    const tenantId = getStoredEffectiveTenantId();
+    if (tenantId) {
+      headers['X-Tenant-ID'] = tenantId;
     }
   } catch {
     // ignore localStorage read errors
