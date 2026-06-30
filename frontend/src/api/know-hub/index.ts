@@ -177,6 +177,26 @@ export function getWorkspaceCustomerAssistants(workspaceId: string): Promise<Kno
   )
 }
 
+export interface KnowHubWeknoraAgent {
+  /** 客户租户可绑定的 WeKnora 原生 Agent 摘要 */
+  id: string
+  name: string
+  description: string
+  is_builtin: boolean
+  agent_mode: string
+  agent_type: string
+  model_id: string
+  kb_selection_mode: string
+  knowledge_bases: string[]
+  retrieve_kb_only_when_mentioned: boolean
+}
+
+export function getWorkspaceWeknoraAgents(workspaceId: string): Promise<KnowHubWeknoraAgent[]> {
+  return requestKnowHub<KnowHubWeknoraAgent[]>(
+    `/api/v1/admin/workspaces/${workspaceId}/weknora-agents`,
+  )
+}
+
 export function createWorkspaceCustomerAssistant(
   workspaceId: string,
   payload: KnowHubCustomerAssistantPayload,
