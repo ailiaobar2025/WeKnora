@@ -122,7 +122,7 @@
     <SettingDrawer
       v-model:visible="templateDialogVisible"
       :title="editingTemplateId ? '编辑模板' : '新建模板'"
-      description="配置客户助手的默认能力基线，客户侧不会看到模板细节。"
+      description="场景模板只承载名称与说明，用于给客户助手分组。提示词、模型、知识库跟随助手绑定的原生 Agent，额度按业务空间配置。"
       icon="layers"
       width="720px"
       :confirm-loading="saving"
@@ -132,7 +132,7 @@
         <section class="form-section">
           <div class="form-section-head">
             <h3>模板信息</h3>
-            <p>作为客户助手的默认能力基线，客户侧不会看到模板细节。</p>
+            <p>场景模板用于给客户助手分组，客户侧不会看到模板细节。</p>
           </div>
           <div class="form-grid">
             <label>
@@ -150,27 +150,9 @@
           </div>
         </section>
 
-        <details class="advanced-section">
-          <summary>高级配置（场景默认值）</summary>
-          <div class="form-grid">
-            <label class="span-2">
-              提示词备注（不替代原生 Agent 提示词，仅作配置说明）
-              <t-textarea v-model="templateForm.system_prompt" :autosize="{ minRows: 4, maxRows: 10 }" />
-            </label>
-            <label>
-              知识范围 JSON（默认值）
-              <t-textarea v-model="templateForm.knowledge_scope" :autosize="{ minRows: 5, maxRows: 10 }" />
-            </label>
-            <label>
-              Agent 配置 JSON（可含默认 agent_id 作为回退）
-              <t-textarea v-model="templateForm.agent_config" :autosize="{ minRows: 5, maxRows: 10 }" />
-            </label>
-            <label class="span-2">
-              额度策略 JSON（默认值）
-              <t-textarea v-model="templateForm.quota_strategy" :autosize="{ minRows: 4, maxRows: 8 }" />
-            </label>
-          </div>
-        </details>
+        <div class="info-box">
+          提示词、模型、工具与知识库由每个客户助手绑定的原生 Agent 决定；额度按业务空间配置。模板不再单独配置这些内容。
+        </div>
       </div>
     </SettingDrawer>
 
@@ -227,7 +209,7 @@
           <t-alert
             v-if="weknoraAgentsError"
             theme="warning"
-            :message="`无法代查可绑定 Agent：${weknoraAgentsError}。请确认管理员已授权访问该客户租户。`"
+            :message="`无法代查可绑定 Agent：${weknoraAgentsError}`"
             class="form-alert"
           />
           <div class="form-grid">
@@ -258,30 +240,9 @@
           </div>
         </section>
 
-        <section class="form-section">
-          <div class="form-section-head">
-            <h3>配额与高级覆盖</h3>
-            <p>额度以预设为主；需要自定义时切换为「自定义（高级配置）」并以 JSON 覆盖。</p>
-          </div>
-          <div class="form-grid">
-            <label>
-              配额策略
-              <t-select v-model="assistantQuotaPreset" :options="quotaPresetOptions" />
-            </label>
-          </div>
-          <details class="advanced-section">
-            <summary>高级配置</summary>
-            <div v-if="assistantQuotaPreset === 'custom'" class="form-grid">
-              <label class="span-2">
-                覆盖额度策略 JSON
-                <t-textarea v-model="assistantForm.quota_strategy" :autosize="{ minRows: 4, maxRows: 8 }" />
-              </label>
-            </div>
-            <p v-else class="muted advanced-hint">
-              当前预设：{{ quotaPresetOptions.find(option => option.value === assistantQuotaPreset)?.label }}。知识来源跟随绑定的原生 Agent，无需在此配置。
-            </p>
-          </details>
-        </section>
+        <div class="info-box">
+          客户助手的提示词、模型、工具与知识库由绑定的原生 Agent 决定；用量额度按业务空间统一配置，不在助手级别单独设置。
+        </div>
       </div>
     </SettingDrawer>
   </div>
@@ -322,7 +283,6 @@ const templateDialogVisible = ref(false)
 const assistantDialogVisible = ref(false)
 const editingTemplateId = ref('')
 const editingAssistantId = ref('')
-const assistantQuotaPreset = ref('')
 
 const templateColumns = [
   { colKey: 'name', title: '模板', minWidth: 220 },
@@ -345,19 +305,9 @@ const statusOptions = [
   { label: '停用', value: 'inactive' },
 ]
 
-const quotaPresetOptions = [
-  { label: '沿用模板默认', value: '' },
-  { label: '试用标准额度', value: 'trial' },
-  { label: '自定义（高级配置）', value: 'custom' },
-]
-
 const templateForm = reactive({
   name: '',
   description: '',
-  system_prompt: '',
-  knowledge_scope: '{}',
-  agent_config: '{}',
-  quota_strategy: '{}',
   status: 'active',
 })
 
@@ -368,7 +318,6 @@ const assistantForm = reactive({
   status: 'active',
   // 绑定的 WeKnora 原生 Agent（主流程，必填）。Prompt/模型/知识库跟随该 Agent。
   bound_agent_id: '',
-  quota_strategy: '',
 })
 
 const selectedWorkspace = computed(() => workspaces.value.find(w => w.id === selectedWorkspaceId.value))
@@ -442,33 +391,6 @@ function templateName(templateId: string): string {
   return templates.value.find(t => t.id === templateId)?.name || templateId
 }
 
-function parseJsonField(value: string, label: string, allowEmptyAsNull = false) {
-  const trimmed = value.trim()
-  if (!trimmed && allowEmptyAsNull) return null
-  if (!trimmed) return {}
-  try {
-    const parsed = JSON.parse(trimmed)
-    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
-      throw new Error(`${label} 必须是 JSON object`)
-    }
-    return parsed
-  } catch (err: any) {
-    throw new Error(`${label} 不是合法 JSON：${err?.message || err}`)
-  }
-}
-
-function toJsonText(value: unknown, emptyAsBlank = false): string {
-  if (value == null) return emptyAsBlank ? '' : '{}'
-  return JSON.stringify(value, null, 2)
-}
-
-function assistantQuotaStrategyPayload() {
-  if (assistantQuotaPreset.value === 'trial' && !assistantForm.quota_strategy.trim()) {
-    return { preset: 'trial' }
-  }
-  return parseJsonField(assistantForm.quota_strategy, '覆盖额度策略', true)
-}
-
 async function loadAssistants() {
   if (!selectedWorkspaceId.value) {
     assistants.value = []
@@ -518,10 +440,6 @@ function openTemplateCreate() {
   Object.assign(templateForm, {
     name: '',
     description: '',
-    system_prompt: '',
-    knowledge_scope: '{}',
-    agent_config: '{}',
-    quota_strategy: '{}',
     status: 'active',
   })
   templateDialogVisible.value = true
@@ -532,10 +450,6 @@ function openTemplateEdit(template: KnowHubAgentTemplate) {
   Object.assign(templateForm, {
     name: template.name,
     description: template.description,
-    system_prompt: template.system_prompt,
-    knowledge_scope: toJsonText(template.knowledge_scope),
-    agent_config: toJsonText(template.agent_config),
-    quota_strategy: toJsonText(template.quota_strategy),
     status: template.status,
   })
   templateDialogVisible.value = true
@@ -551,10 +465,6 @@ async function saveTemplate() {
     const payload = {
       name: templateForm.name.trim(),
       description: templateForm.description,
-      system_prompt: templateForm.system_prompt,
-      knowledge_scope: parseJsonField(templateForm.knowledge_scope, '知识范围'),
-      agent_config: parseJsonField(templateForm.agent_config, 'Agent 配置'),
-      quota_strategy: parseJsonField(templateForm.quota_strategy, '额度策略'),
       status: templateForm.status,
     }
     if (editingTemplateId.value) {
@@ -594,9 +504,7 @@ function openAssistantCreate() {
     template_id: templates.value[0]?.id || '',
     status: 'active',
     bound_agent_id: '',
-    quota_strategy: '',
   })
-  assistantQuotaPreset.value = ''
   // 打开表单时刷新一次该客户租户可绑定的 Agent
   loadWeknoraAgents()
   assistantDialogVisible.value = true
@@ -610,9 +518,7 @@ function openAssistantEdit(assistant: KnowHubCustomerAssistant) {
     template_id: assistant.template_id,
     status: assistant.status,
     bound_agent_id: effectiveAgentId(assistant),
-    quota_strategy: toJsonText(assistant.quota_strategy, true),
   })
-  assistantQuotaPreset.value = assistant.quota_strategy ? 'custom' : ''
   loadWeknoraAgents()
   assistantDialogVisible.value = true
 }
@@ -639,7 +545,6 @@ async function saveAssistant() {
       status: assistantForm.status,
       // 绑定的原生 Agent：Prompt/模型/知识库由该 Agent 承载，客户助手不覆盖。
       agent_config: { agent_id: assistantForm.bound_agent_id },
-      quota_strategy: assistantQuotaStrategyPayload(),
     }
     if (editingAssistantId.value) {
       await updateCustomerAssistant(editingAssistantId.value, payload)
@@ -852,22 +757,6 @@ h2 {
   line-height: 1.6;
 }
 
-.advanced-section {
-  border-top: 1px solid #f2f3f5;
-  padding-top: 14px;
-}
-
-.advanced-section summary {
-  color: #4e5969;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.advanced-section .form-grid {
-  margin-top: 14px;
-}
-
 .info-box {
   border: 1px solid #d8efe5;
   border-radius: 8px;
@@ -886,12 +775,6 @@ h2 {
   color: #d54941;
   font-size: 14px;
   margin-left: 2px;
-}
-
-.advanced-hint {
-  margin-top: 14px;
-  font-size: 12px;
-  line-height: 1.6;
 }
 
 .agent-summary {
