@@ -101,6 +101,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   const canUseSelectedTenant = (tenantId: number | null) => {
     if (tenantId === null || tenantId === undefined) return false
+    // 超管（can_access_all_tenants 已 && 跨租户开关，见 /auth/me）可跨租户访问任意
+    // tenant。与下方 currentTenantRole 的超管判定保持一致，避免刷新时把合法的
+    // 跨租户切换误判为「不可访问」而清回 home tenant。
+    if (canAccessAllTenants.value) return true
     const selectedTenantIdText = String(tenantId)
     return memberships.value.some((m) => String(m.tenant_id) === selectedTenantIdText)
   }

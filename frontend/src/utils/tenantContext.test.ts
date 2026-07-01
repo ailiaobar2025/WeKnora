@@ -31,7 +31,9 @@ class MemoryStorage {
   }
 }
 
-test('stale selected tenant is ignored for system admin when membership is missing', () => {
+test('selected tenant is kept for superuser with cross-tenant access even without membership', () => {
+  // can_access_all_tenants=true 表示 /auth/me 已确认「用户超管字段 && 跨租户开关」
+  // 均成立，超管可合法访问非成员租户。刷新后必须保持切换，不能清回 home tenant。
   const storage = new MemoryStorage()
   Object.defineProperty(globalThis, 'localStorage', {
     value: storage,
@@ -53,7 +55,34 @@ test('stale selected tenant is ignored for system admin when membership is missi
   localStorage.setItem('weknora_selected_tenant_id', '10000')
   localStorage.setItem('weknora_selected_tenant_name', 'customer tenant')
 
+  assert.equal(getStoredEffectiveTenantId(), '10000')
+  assert.equal(localStorage.getItem('weknora_selected_tenant_id'), '10000')
+  assert.equal(localStorage.getItem('weknora_selected_tenant_name'), 'customer tenant')
+})
+
+test('stale selected tenant is cleared when cross-tenant access is disabled', () => {
+  // can_access_all_tenants=false（开关关或非超管）时，非成员租户不可访问，
+  // selected 必须被清掉并回退到 home tenant。
+  const storage = new MemoryStorage()
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: storage,
+    configurable: true,
+  })
+
+  localStorage.setItem(
+    'weknora_user',
+    JSON.stringify({
+      id: 'user-1',
+      tenant_id: 10001,
+      can_access_all_tenants: false,
+    }),
+  )
+  localStorage.setItem(
+    'weknora_memberships',
+    JSON.stringify([{ tenant_id: 10001, tenant_name: 'Know Hub Admin', role: 'owner' }]),
+  )
+  localStorage.setItem('weknora_selected_tenant_id', '10000')
+
   assert.equal(getStoredEffectiveTenantId(), '10001')
   assert.equal(localStorage.getItem('weknora_selected_tenant_id'), null)
-  assert.equal(localStorage.getItem('weknora_selected_tenant_name'), null)
 })

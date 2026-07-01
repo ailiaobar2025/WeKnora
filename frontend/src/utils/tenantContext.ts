@@ -30,7 +30,15 @@ function storedHomeTenantId(): string | null {
   return normalizeTenantId(tenant?.id)
 }
 
+function storedCanAccessAllTenants(): boolean {
+  // /auth/me 返回的 can_access_all_tenants 已是「用户超管字段 && 跨租户开关」
+  // （见 WeKnora internal/handler/auth.go），为 true 即表示可合法跨租户访问。
+  const user = readJson<{ can_access_all_tenants?: boolean }>('weknora_user')
+  return user?.can_access_all_tenants === true
+}
+
 function canUseSelectedTenant(selectedTenantId: string): boolean {
+  if (storedCanAccessAllTenants()) return true
   const memberships = readJson<StoredMembership[]>('weknora_memberships')
   if (!Array.isArray(memberships)) return false
   return memberships.some((item) => normalizeTenantId(item?.tenant_id) === selectedTenantId)
