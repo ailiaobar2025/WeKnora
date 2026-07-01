@@ -4305,6 +4305,7 @@ export default {
       agentDisabled: 'Agent режим отключён',
       agentNotReadyDetail: 'Agent не готов. Пожалуйста, настройте следующее: {reasons}',
       webSearchNotConfigured: 'Веб-поиск не настроен. Сначала выберите провайдера и настройте ключи в разделе настроек.',
+      webSearchNotConfiguredContactAdmin: 'Веб-поиск недоступен. Обратитесь к администратору.',
       webSearchEnabled: 'Веб-поиск включён',
       webSearchDisabled: 'Веб-поиск выключен',
       sessionMissing: 'ID сессии не существует',

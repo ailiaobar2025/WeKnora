@@ -2203,6 +2203,7 @@ export default {
       agentDisabled: 'Agent Mode disabled',
       agentNotReadyDetail: 'Agent is not ready. Please configure the following: {reasons}',
       webSearchNotConfigured: 'Web search engine is not configured. Please configure a provider and credentials in settings.',
+      webSearchNotConfiguredContactAdmin: 'Web search is not available. Please contact the administrator.',
       webSearchEnabled: 'Web search enabled',
       webSearchDisabled: 'Web search disabled',
       sessionMissing: 'Session ID does not exist',

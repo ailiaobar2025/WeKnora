@@ -3969,6 +3969,7 @@ export default {
       agentNotReadyDetail: "Agent가 준비되지 않았습니다. 다음 항목을 설정해야 합니다: {reasons}",
       webSearchNotConfigured:
         "웹 검색 엔진이 구성되지 않았습니다. 먼저 설정에서 검색 엔진 선택 및 인터페이스 구성을 완료해주세요.",
+      webSearchNotConfiguredContactAdmin: "웹 검색을 사용할 수 없습니다. 관리자에게 문의해 주세요.",
       webSearchEnabled: "웹 검색이 켜졌습니다",
       webSearchDisabled: "웹 검색이 꺼졌습니다",
       sessionMissing: "세션 ID가 존재하지 않습니다",

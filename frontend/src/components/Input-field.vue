@@ -2183,6 +2183,11 @@ const toggleWebSearch = () => {
   }
 
   if (!isWebSearchConfigured.value) {
+    // 客户模式无权配置，提示联系管理员，不带「前往设置」入口
+    if (useCustomerAssistantMode.value) {
+      MessagePlugin.warning(t('input.messages.webSearchNotConfiguredContactAdmin'));
+      return;
+    }
     const messageContent = h('div', { style: 'display: flex; flex-direction: column; gap: 6px; max-width: 280px;' }, [
       h('span', { style: 'color: var(--td-text-color-primary); line-height: 1.5;' }, t('input.messages.webSearchNotConfigured')),
       h('a', {
@@ -2343,14 +2348,14 @@ defineExpose({
             <template #content>
               <div v-if="isWebSearchDisabledByAgent" class="tooltip-with-link">
                 <span>{{ $t('input.webSearchDisabledByAgent') }}</span>
-                <a href="#" @click.prevent="handleGoToAgentSettings('websearch')">{{ $t('input.goToAgentSettings')
+                <a v-if="canOpenAgentEditor" href="#" @click.prevent="handleGoToAgentSettings('websearch')">{{ $t('input.goToAgentSettings')
                 }}</a>
               </div>
               <span v-else-if="isWebSearchConfigured">{{ isWebSearchEnabled ? $t('input.webSearch.toggleOff') :
                 $t('input.webSearch.toggleOn') }}</span>
               <div v-else class="tooltip-with-link">
                 <span>{{ $t('input.webSearch.notConfigured') }}</span>
-                <a href="#" @click.prevent="handleGoToWebSearchSettings">{{ $t('input.goToSettings') }}</a>
+                <a v-if="canOpenAgentEditor" href="#" @click.prevent="handleGoToWebSearchSettings">{{ $t('input.goToSettings') }}</a>
               </div>
             </template>
             <div class="control-btn websearch-btn" :class="{
@@ -2375,7 +2380,7 @@ defineExpose({
             <template #content>
               <div v-if="!isImageUploadEnabledByAgent" class="tooltip-with-link">
                 <span>{{ $t('input.imageUploadDisabledByAgent') }}</span>
-                <a href="#" @click.prevent="handleGoToAgentSettings('model')">{{ $t('input.goToAgentSettings') }}</a>
+                <a v-if="canOpenAgentEditor" href="#" @click.prevent="handleGoToAgentSettings('model')">{{ $t('input.goToAgentSettings') }}</a>
               </div>
               <span v-else>{{ $t('chat.imageUploadTooltip') }}</span>
             </template>
@@ -2418,7 +2423,7 @@ defineExpose({
             <template #content>
               <div v-if="isKnowledgeBaseDisabledByAgent" class="tooltip-with-link">
                 <span>{{ $t('input.kbDisabledByAgent') }}</span>
-                <a href="#" @click.prevent="handleGoToAgentSettings('knowledge')">{{ $t('input.goToAgentSettings')
+                <a v-if="canOpenAgentEditor" href="#" @click.prevent="handleGoToAgentSettings('knowledge')">{{ $t('input.goToAgentSettings')
                 }}</a>
               </div>
               <span v-else>{{ allSelectedItems.length > 0 ? $t('input.knowledgeBaseWithCount', {
@@ -2463,7 +2468,7 @@ defineExpose({
             <div class="model-selector-dropdown" :style="modelDropdownStyle" @click.stop>
               <div class="model-selector-header">
                 <span>{{ $t('conversationSettings.models.chatGroupLabel') }}</span>
-                <button class="model-selector-add" type="button" @click="handleModelChange('__add_model__')">
+                <button v-if="canOpenAgentEditor" class="model-selector-add" type="button" @click="handleModelChange('__add_model__')">
                   <span class="add-icon">+</span>
                   <span class="add-text">{{ $t('input.addModel') }}</span>
                 </button>

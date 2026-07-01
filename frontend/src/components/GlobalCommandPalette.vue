@@ -169,6 +169,7 @@ import { useCmdkSearch, type CmdkFileGroup, type CmdkChunk, type CmdkMsgGroup } 
 import { highlightText } from './GlobalCommandPalette/useHighlight'
 import { useStartChat } from './GlobalCommandPalette/useStartChat'
 import { buildCommands, filterCommands } from './GlobalCommandPalette/commands'
+import { isKnowHubProductMode, isKnowHubSystemAdmin } from '@/product/knowHub'
 import ResultGroup from './GlobalCommandPalette/ResultGroup.vue'
 import ResultItem from './GlobalCommandPalette/ResultItem.vue'
 import RetrievalSettings from '@/views/settings/RetrievalSettings.vue'
@@ -257,10 +258,16 @@ const allCommands = computed(() => {
     close: () => commandPaletteStore.closePalette(),
   })
   // 共享空间入口与侧栏菜单保持一致：viewer / contributor 看不到。
-  if (!authStore.hasRole('admin')) {
-    return cmds.filter((c) => c.id !== 'open-organizations')
+  const filtered = authStore.hasRole('admin')
+    ? cmds
+    : cmds.filter((c) => c.id !== 'open-organizations')
+  // Know Hub 产品模式下，普通客户隐藏指向管理路由的命令（智能体/共享空间），
+  // 与路由守卫 DISABLED_ROUTE_PREFIXES 保持一致，避免客户看到"点了却进不去"的入口。
+  // open-settings 保留：客户菜单本就包含设置（仅看 general/userprofile/tenant）。
+  if (isKnowHubProductMode() && !isKnowHubSystemAdmin(authStore)) {
+    return filtered.filter((c) => c.id !== 'open-agents' && c.id !== 'open-organizations')
   }
-  return cmds
+  return filtered
 })
 
 const filteredCommands = computed(() => filterCommands(allCommands.value, query.value))

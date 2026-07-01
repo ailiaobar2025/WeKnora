@@ -3987,6 +3987,7 @@ export default {
         "Agent 未就绪，需要配置以下内容：{reasons}",
       webSearchNotConfigured:
         "未配置网络搜索引擎，请先在设置中完成搜索引擎选择与接口配置。",
+      webSearchNotConfiguredContactAdmin: "网络搜索尚未启用，请联系管理员开启。",
       webSearchEnabled: "网络搜索已开启",
       webSearchDisabled: "网络搜索已关闭",
       sessionMissing: "会话 ID 不存在",
