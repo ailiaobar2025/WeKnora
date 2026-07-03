@@ -600,6 +600,11 @@ const loadCustomerAssistants = async () => {
   try {
     customerAssistants.value = await getMyCustomerAssistants();
     const active = activeCustomerAssistants.value;
+    const requestedAssistantId = typeof route.query.assistantId === 'string' ? route.query.assistantId : '';
+    if (requestedAssistantId && active.some((assistant) => assistant.id === requestedAssistantId)) {
+      settingsStore.selectCustomerAssistant(requestedAssistantId);
+      return;
+    }
     if (active.length && !active.some((assistant) => assistant.id === settingsStore.selectedCustomerAssistantId)) {
       settingsStore.selectCustomerAssistant(active[0].id);
     }

@@ -63,10 +63,10 @@
               <AgentAvatar :name="shared.agent.name" size="small" />
               <span class="agent-option-name">{{ shared.agent.name }}</span>
               <span class="shared-tag">{{ $t('agent.selector.sharedLabel') }}</span>
-              <div v-if="getAgentNotReadyLabels(shared.agent, String(shared.source_tenant_id)).length"
+              <div v-if="getAgentNotReadyLabels(getSharedAgent(shared), String(shared.source_tenant_id)).length"
                 class="agent-option-actions">
                 <t-tooltip
-                  :content="$t('agent.selector.notReadyHint', { items: formatNotReadyHint(shared.agent, String(shared.source_tenant_id)) })"
+                  :content="$t('agent.selector.notReadyHint', { items: formatNotReadyHint(getSharedAgent(shared), String(shared.source_tenant_id)) })"
                   placement="top">
                   <TIcon name="error-circle" size="14px" class="not-ready-icon" @click.stop />
                 </t-tooltip>
@@ -218,8 +218,8 @@ const detailPanelStyle = ref<Record<string, string>>({});
 let detailHideTimer: ReturnType<typeof setTimeout> | null = null;
 
 const DETAIL_PANEL_WIDTH = 200;
-const DETAIL_BRIDGE_OVERLAP = 10;
-const DETAIL_HIDE_DELAY_MS = 400;
+const DETAIL_BRIDGE_OVERLAP = 24;
+const DETAIL_HIDE_DELAY_MS = 1000;
 
 const agentsList = computed(() => props.agents ?? []);
 
@@ -241,6 +241,8 @@ const customAgents = computed(() => agentsList.value.filter(a => !a.is_builtin))
 const sharedAgentsList = computed<SharedAgentInfo[]>(() =>
   (orgStore.sharedAgents || []).filter(shared => !shared.disabled_by_me),
 );
+
+const getSharedAgent = (shared: SharedAgentInfo) => shared.agent as CustomAgent;
 
 const currentAgentSourceTenantId = computed(() => settingsStore.selectedAgentSourceTenantId ?? null);
 
@@ -411,7 +413,7 @@ const onOptionEnter = (agent: CustomAgent, event: MouseEvent, sourceTenantId?: s
 };
 
 const onSharedOptionEnter = (shared: SharedAgentInfo, event: MouseEvent) => {
-  onOptionEnter(shared.agent as CustomAgent, event, String(shared.source_tenant_id), {
+  onOptionEnter(getSharedAgent(shared), event, String(shared.source_tenant_id), {
     org_name: shared.org_name,
     shared_by_username: shared.shared_by_username,
   });
@@ -448,11 +450,12 @@ const selectAgent = (agent: CustomAgent) => {
 
 const selectSharedAgent = (shared: SharedAgentInfo) => {
   const sourceTenantId = String(shared.source_tenant_id);
-  if (getAgentNotReadyLabels(shared.agent, sourceTenantId).length > 0) {
-    emitAgentNotReady(shared.agent as CustomAgent, sourceTenantId);
+  const agent = getSharedAgent(shared);
+  if (getAgentNotReadyLabels(agent, sourceTenantId).length > 0) {
+    emitAgentNotReady(agent, sourceTenantId);
     return;
   }
-  emit('select', shared.agent as CustomAgent, sourceTenantId);
+  emit('select', agent, sourceTenantId);
 };
 
 const goToSettings = (agent: CustomAgent, sourceTenantId?: string) => {
@@ -773,9 +776,9 @@ watch(activeDetail, (detail) => {
   &::before {
     content: '';
     position: absolute;
-    left: -12px;
+    left: -24px;
     top: 0;
-    width: 12px;
+    width: 24px;
     height: 100%;
   }
 }

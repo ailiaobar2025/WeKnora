@@ -1,5 +1,6 @@
 const CUSTOMER_MENU_PATHS = new Set([
   'creatChat',
+  'my-assistants',
   'knowledge-bases',
   'settings',
   'logout',

@@ -68,7 +68,7 @@ function startWithAssistant(assistant: KnowHubCustomerAssistantBrief) {
   selectedAssistantId.value = assistant.id
   settingsStore.selectCustomerAssistant(assistant.id)
   MessagePlugin.success(`已选择助手「${assistant.display_name || assistant.name}」`)
-  router.push('/platform/creatChat')
+  router.push({ path: '/platform/creatChat', query: { assistantId: assistant.id } })
 }
 
 onMounted(loadAssistants)
