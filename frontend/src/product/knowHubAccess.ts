@@ -11,7 +11,6 @@ const ADMIN_MENU_PATHS = new Set([
   'customer-assistants',
   'trial-report',
   'quota-audit',
-  'audit-logs',
 ])
 
 const CUSTOMER_SETTINGS_SECTIONS = new Set([

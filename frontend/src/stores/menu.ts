@@ -32,7 +32,6 @@ export const useMenuStore = defineStore('menuStore', () => {
     { title: '', titleKey: 'menu.customerAssistants', icon: 'agent', path: 'customer-assistants' },
     { title: '', titleKey: 'menu.trialReport', icon: 'setting', path: 'trial-report' },
     { title: '', titleKey: 'menu.quotaAudit', icon: 'setting', path: 'quota-audit' },
-    { title: '', titleKey: 'menu.auditLogs', icon: 'setting', path: 'audit-logs' },
     { title: '', titleKey: 'menu.agents', icon: 'agent', path: 'agents' },
     { title: '', titleKey: 'menu.integrations', icon: 'integration', path: 'integrations' },
     { title: '', titleKey: 'menu.organizations', icon: 'organization', path: 'organizations' },

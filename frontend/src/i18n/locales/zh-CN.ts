@@ -10,7 +10,6 @@ export default {
     customerAssistants: "客户助手",
     trialReport: "试用报告",
     quotaAudit: "额度审计",
-    auditLogs: "审计日志",
     createChat: "创建对话",
     tenant: "账户信息",
     settings: "系统设置",

@@ -10,7 +10,6 @@ export default {
     customerAssistants: "고객 어시스턴트",
     trialReport: "평가 보고서",
     quotaAudit: "할당량 감사",
-    auditLogs: "감사 로그",
     createChat: "대화 생성",
     tenant: "계정 정보",
     settings: "시스템 설정",

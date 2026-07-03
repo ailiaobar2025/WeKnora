@@ -10,7 +10,6 @@ export default {
     customerAssistants: 'Customer Assistants',
     trialReport: 'Trial Report',
     quotaAudit: 'Quota Audit',
-    auditLogs: 'Audit Logs',
     createChat: 'Create Chat',
     tenant: 'Account Info',
     settings: 'System Settings',
