@@ -218,6 +218,7 @@ async function createNewSession(value: string, modelId: string, mentionedItems: 
 }
 
 const navigateToSession = async (sessionId: string, value: string, modelId: string, mentionedItems: any[], imageFiles: any[] = [], attachmentFiles: any[] = []) => {
+    const assistantId = typeof route.query.assistantId === 'string' ? route.query.assistantId : '';
     const now = new Date().toISOString();
     let obj = {
         title: t('createChat.newSessionTitle'),
@@ -231,7 +232,10 @@ const navigateToSession = async (sessionId: string, value: string, modelId: stri
     usemenuStore.updataMenuChildren(obj);
     usemenuStore.changeIsFirstSession(true);
     usemenuStore.changeFirstQuery(value, mentionedItems, modelId, imageFiles, attachmentFiles);
-    router.push(`/platform/chat/${sessionId}`);
+    router.push({
+        path: `/platform/chat/${sessionId}`,
+        query: assistantId ? { assistantId } : undefined,
+    });
 }
 
 const handleKBEditorSuccess = (kbId: string) => {

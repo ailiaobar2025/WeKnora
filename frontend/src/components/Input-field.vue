@@ -66,7 +66,10 @@ const canOpenAgentEditor = computed(() => (
 ));
 const useCustomerAssistantMode = computed(() => (
   isKnowHubProductMode()
-  && !isKnowHubAgentConfigurationVisible(isKnowHubSystemAdmin(authStore))
+  && (
+    typeof route.query.assistantId === 'string'
+    || !isKnowHubAgentConfigurationVisible(isKnowHubSystemAdmin(authStore))
+  )
 ));
 
 let query = ref("");

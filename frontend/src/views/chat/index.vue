@@ -147,9 +147,13 @@ const props = defineProps({
 const usemenuStore = useMenuStore();
 const useSettingsStoreInstance = useSettingsStore();
 const authStore = useAuthStore();
+const route = useRoute();
 const useCustomerAssistantMode = computed(() => (
     isKnowHubProductMode()
-    && !isKnowHubAgentConfigurationVisible(isKnowHubSystemAdmin(authStore))
+    && (
+        typeof route.query.assistantId === 'string'
+        || !isKnowHubAgentConfigurationVisible(isKnowHubSystemAdmin(authStore))
+    )
 ));
 
 // Whether the active chat session is using the Agent pipeline (not quick-answer).
@@ -190,7 +194,6 @@ const attachStreamDebugToMessage = (message) => {
     }
     message.debugRequest = payload;
 };
-const route = useRoute();
 const session_id = ref(props.session_id || route.params.chatid);
 
 // 拉 session 详情，并按其 last_request_state 把输入栏状态恢复到当时的发起态。
