@@ -84,6 +84,10 @@ export interface KnowHubAgentTemplate {
   knowledge_scope: JsonObject
   agent_config: JsonObject
   quota_strategy: JsonObject
+  scene_code: string
+  mode: string
+  output_schema: JsonObject | null
+  seed_source: string
   status: string
   created_at: string | null
   updated_at: string | null
@@ -96,6 +100,10 @@ export interface KnowHubAgentTemplatePayload {
   knowledge_scope?: JsonObject
   agent_config?: JsonObject
   quota_strategy?: JsonObject
+  scene_code?: string
+  mode?: string
+  output_schema?: JsonObject | null
+  seed_source?: string
   status?: string
 }
 

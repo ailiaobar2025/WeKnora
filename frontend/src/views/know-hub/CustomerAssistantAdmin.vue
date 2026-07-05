@@ -15,54 +15,12 @@
         <section class="panel">
           <div class="panel-header">
             <div>
-              <h2>Agent Template</h2>
-              <p>全局模板不会展示给客户。</p>
-            </div>
-            <t-button theme="primary" @click="openTemplateCreate">新建模板</t-button>
-          </div>
-
-          <div v-if="templates.length" class="table-shell">
-            <t-table row-key="id" :data="templates" :columns="templateColumns" size="medium" hover>
-              <template #name="{ row }">
-                <div class="primary-cell">
-                  <span class="primary-cell__title">{{ row.name }}</span>
-                  <span class="primary-cell__meta">{{ row.id }}</span>
-                </div>
-              </template>
-              <template #status="{ row }">
-                <t-tag :theme="statusTheme(row.status)" size="small" variant="light">
-                  {{ statusLabel(row.status) }}
-                </t-tag>
-              </template>
-              <template #description="{ row }">
-                <span class="muted">{{ row.description || '暂无说明' }}</span>
-              </template>
-              <template #actions="{ row }">
-                <div class="row-actions">
-                  <t-button size="small" variant="text" @click="openTemplateEdit(row)">编辑</t-button>
-                  <t-popconfirm
-                    :content="`确认删除模板「${row.name}」？`"
-                    :confirm-btn="{ content: '删除', theme: 'danger' }"
-                    @confirm="removeTemplate(row)"
-                  >
-                    <t-button size="small" variant="text" theme="danger">删除</t-button>
-                  </t-popconfirm>
-                </div>
-              </template>
-            </t-table>
-          </div>
-          <t-empty v-else description="暂无模板" class="empty" />
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <div>
               <h2>按业务空间分配助手</h2>
-              <p>选择 workspace 后创建或维护该客户可用的助手。</p>
+              <p>为客户空间绑定可访问的 WeKnora 原生 Agent，场景类型仅用于业务归类。</p>
             </div>
             <t-button
               theme="primary"
-              :disabled="!selectedWorkspaceId || !templates.length"
+              :disabled="!selectedWorkspaceId || !sceneTemplates.length"
               @click="openAssistantCreate"
             >
               新建助手
@@ -73,6 +31,12 @@
             <label>业务空间</label>
             <t-select v-model="selectedWorkspaceId" :options="workspaceOptions" placeholder="请选择业务空间" filterable />
           </div>
+          <t-alert
+            v-if="!sceneTemplates.length"
+            theme="warning"
+            message="暂无可用场景类型，请先确认内置场景 seed 已完成初始化。"
+            class="form-alert"
+          />
 
           <div v-if="selectedWorkspaceId && assistants.length" class="table-shell">
             <t-table row-key="id" :data="assistants" :columns="assistantColumns" size="medium" hover>
@@ -92,7 +56,7 @@
                 </t-tag>
               </template>
               <template #template_id="{ row }">
-                <span>{{ templateName(row.template_id) }}</span>
+                <span>{{ sceneName(row.template_id) }}</span>
               </template>
               <template #status="{ row }">
                 <t-tag :theme="statusTheme(row.status)" size="small" variant="light">
@@ -120,46 +84,9 @@
     </t-loading>
 
     <SettingDrawer
-      v-model:visible="templateDialogVisible"
-      :title="editingTemplateId ? '编辑模板' : '新建模板'"
-      description="场景模板只承载名称与说明，用于给客户助手分组。提示词、模型、知识库跟随助手绑定的原生 Agent，额度按业务空间配置。"
-      icon="layers"
-      width="720px"
-      :confirm-loading="saving"
-      @confirm="saveTemplate"
-    >
-      <div class="product-form">
-        <section class="form-section">
-          <div class="form-section-head">
-            <h3>模板信息</h3>
-            <p>场景模板用于给客户助手分组，客户侧不会看到模板细节。</p>
-          </div>
-          <div class="form-grid">
-            <label>
-              模板名称
-              <t-input v-model="templateForm.name" placeholder="例如：销售资料助手模板" />
-            </label>
-            <label>
-              状态
-              <t-select v-model="templateForm.status" :options="statusOptions" />
-            </label>
-            <label class="span-2">
-              模板说明
-              <t-textarea v-model="templateForm.description" :autosize="{ minRows: 2, maxRows: 4 }" />
-            </label>
-          </div>
-        </section>
-
-        <div class="info-box">
-          提示词、模型、工具与知识库由每个客户助手绑定的原生 Agent 决定；额度按业务空间配置。模板不再单独配置这些内容。
-        </div>
-      </div>
-    </SettingDrawer>
-
-    <SettingDrawer
       v-model:visible="assistantDialogVisible"
       :title="editingAssistantId ? '编辑客户助手' : '新建客户助手'"
-      description="把场景模板分配到客户空间，并绑定一个该客户租户可访问的 WeKnora 原生 Agent。"
+      description="把客户空间和可访问的 WeKnora 原生 Agent 绑定成一个业务助手。"
       icon="user-talk"
       width="720px"
       :confirm-loading="saving"
@@ -169,7 +96,7 @@
         <section class="form-section">
           <div class="form-section-head">
             <h3>客户与展示</h3>
-            <p>助手分配到当前选中的业务空间，展示名称会出现在客户的新对话助手选择器中。</p>
+            <p>助手分配到当前业务空间，展示名称会出现在客户的新对话助手选择器中。</p>
           </div>
           <div class="form-grid">
             <label>
@@ -177,11 +104,11 @@
               <t-input :value="selectedWorkspace?.name || selectedWorkspaceId" readonly />
             </label>
             <label>
-              场景模板（默认策略）
+              场景类型
               <t-select
                 v-model="assistantForm.template_id"
-                :options="templateOptions"
-                placeholder="请选择场景模板"
+                :options="sceneOptions"
+                placeholder="请选择场景类型"
                 filterable
                 :disabled="Boolean(editingAssistantId)"
               />
@@ -241,7 +168,7 @@
         </section>
 
         <div class="info-box">
-          客户助手的提示词、模型、工具与知识库由绑定的原生 Agent 决定；用量额度按业务空间统一配置，不在助手级别单独设置。
+          客户助手的提示词、模型、工具与知识库由绑定的原生 Agent 决定；场景类型只用于运营归类、评估分组和报表统计。
         </div>
       </div>
     </SettingDrawer>
@@ -253,15 +180,12 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { MessagePlugin } from 'tdesign-vue-next'
 import SettingDrawer from '@/components/settings/SettingDrawer.vue'
 import {
-  createAgentTemplate,
   createWorkspaceCustomerAssistant,
-  deleteAgentTemplate,
   deleteCustomerAssistant,
   getAdminWorkspaces,
   getAgentTemplates,
   getWorkspaceCustomerAssistants,
   getWorkspaceWeknoraAgents,
-  updateAgentTemplate,
   updateCustomerAssistant,
   type KnowHubAgentTemplate,
   type KnowHubCustomerAssistant,
@@ -279,23 +203,14 @@ const weknoraAgents = ref<KnowHubWeknoraAgent[]>([])
 const weknoraAgentsError = ref('')
 const selectedWorkspaceId = ref('')
 
-const templateDialogVisible = ref(false)
 const assistantDialogVisible = ref(false)
-const editingTemplateId = ref('')
 const editingAssistantId = ref('')
-
-const templateColumns = [
-  { colKey: 'name', title: '模板', minWidth: 220 },
-  { colKey: 'status', title: '状态', width: 96 },
-  { colKey: 'description', title: '说明', minWidth: 220 },
-  { colKey: 'actions', title: '操作', width: 128, align: 'right' as const },
-]
 
 const assistantColumns = [
   { colKey: 'assistant', title: '助手', minWidth: 200 },
   { colKey: 'agent', title: '绑定 Agent', minWidth: 200 },
   { colKey: 'availability', title: '可用性', width: 120 },
-  { colKey: 'template_id', title: '模板', minWidth: 160 },
+  { colKey: 'template_id', title: '场景类型', minWidth: 160 },
   { colKey: 'status', title: '状态', width: 88 },
   { colKey: 'actions', title: '操作', width: 128, align: 'right' as const },
 ]
@@ -304,12 +219,6 @@ const statusOptions = [
   { label: '启用', value: 'active' },
   { label: '停用', value: 'inactive' },
 ]
-
-const templateForm = reactive({
-  name: '',
-  description: '',
-  status: 'active',
-})
 
 const assistantForm = reactive({
   name: '',
@@ -325,10 +234,18 @@ const workspaceOptions = computed(() => workspaces.value.map(workspace => ({
   label: `${workspace.name} · ${workspace.owner_name || workspace.id}`,
   value: workspace.id,
 })))
-const templateOptions = computed(() => templates.value.map(template => ({
-  label: template.name,
-  value: template.id,
-})))
+const sceneTemplates = computed(() => templates.value.filter(template => template.status === 'active'))
+const sceneOptions = computed(() => {
+  const options = sceneTemplates.value.slice()
+  const selected = templates.value.find(template => template.id === assistantForm.template_id)
+  if (selected && !options.some(template => template.id === selected.id)) {
+    options.push(selected)
+  }
+  return options.map(template => ({
+    label: sceneNameForTemplate(template),
+    value: template.id,
+  }))
+})
 
 const weknoraAgentOptions = computed(() => weknoraAgents.value.map(agent => ({
   label: agent.is_builtin ? `${agent.name}（内置）` : agent.name,
@@ -342,10 +259,7 @@ const selectedAgent = computed(() =>
 function effectiveAgentId(assistant: KnowHubCustomerAssistant): string {
   const direct = (assistant.agent_config as Record<string, any> | null)?.agent_id
   if (direct) return String(direct)
-  // 助手未直接绑定时回退到场景模板的默认 agent_id
-  const template = templates.value.find(item => item.id === assistant.template_id)
-  const fallback = (template?.agent_config as Record<string, any> | null)?.agent_id
-  return fallback ? String(fallback) : ''
+  return ''
 }
 
 function agentAvailability(assistant: KnowHubCustomerAssistant): { label: string; theme: 'success' | 'warning' | 'default' } {
@@ -387,8 +301,17 @@ function statusLabel(status: string): string {
   return status === 'active' ? '启用' : '停用'
 }
 
-function templateName(templateId: string): string {
-  return templates.value.find(t => t.id === templateId)?.name || templateId
+function sceneName(templateId: string): string {
+  const template = templates.value.find(t => t.id === templateId)
+  return template ? sceneNameForTemplate(template) : templateId
+}
+
+function sceneNameForTemplate(template: KnowHubAgentTemplate): string {
+  return template.scene_code ? `${template.name} · ${template.scene_code}` : template.name
+}
+
+function defaultSceneTemplateId(): string {
+  return sceneTemplates.value[0]?.id || templates.value[0]?.id || ''
 }
 
 async function loadAssistants() {
@@ -435,73 +358,20 @@ async function loadAll() {
   }
 }
 
-function openTemplateCreate() {
-  editingTemplateId.value = ''
-  Object.assign(templateForm, {
-    name: '',
-    description: '',
-    status: 'active',
-  })
-  templateDialogVisible.value = true
-}
-
-function openTemplateEdit(template: KnowHubAgentTemplate) {
-  editingTemplateId.value = template.id
-  Object.assign(templateForm, {
-    name: template.name,
-    description: template.description,
-    status: template.status,
-  })
-  templateDialogVisible.value = true
-}
-
-async function saveTemplate() {
-  if (!templateForm.name.trim()) {
-    MessagePlugin.warning('请填写模板名称')
-    return
-  }
-  saving.value = true
-  try {
-    const payload = {
-      name: templateForm.name.trim(),
-      description: templateForm.description,
-      status: templateForm.status,
-    }
-    if (editingTemplateId.value) {
-      await updateAgentTemplate(editingTemplateId.value, payload)
-    } else {
-      await createAgentTemplate(payload)
-    }
-    templateDialogVisible.value = false
-    MessagePlugin.success('模板已保存')
-    await loadAll()
-  } catch (err: any) {
-    MessagePlugin.error(err?.message || '模板保存失败')
-  } finally {
-    saving.value = false
-  }
-}
-
-async function removeTemplate(template: KnowHubAgentTemplate) {
-  try {
-    await deleteAgentTemplate(template.id)
-    MessagePlugin.success('模板已删除')
-    await loadAll()
-  } catch (err: any) {
-    MessagePlugin.error(err?.message || '模板删除失败')
-  }
-}
-
 function openAssistantCreate() {
   if (!selectedWorkspace.value) {
     MessagePlugin.warning('请先选择业务空间')
+    return
+  }
+  if (!sceneTemplates.value.length) {
+    MessagePlugin.warning('暂无可用场景类型')
     return
   }
   editingAssistantId.value = ''
   Object.assign(assistantForm, {
     name: '',
     display_name: '',
-    template_id: templates.value[0]?.id || '',
+    template_id: defaultSceneTemplateId(),
     status: 'active',
     bound_agent_id: '',
   })
@@ -529,7 +399,7 @@ async function saveAssistant() {
     return
   }
   if (!assistantForm.name.trim() || !assistantForm.template_id) {
-    MessagePlugin.warning('请填写助手名称并选择场景模板')
+    MessagePlugin.warning('请填写助手名称并选择场景类型')
     return
   }
   if (!assistantForm.bound_agent_id) {
