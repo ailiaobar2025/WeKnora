@@ -8,7 +8,6 @@ export default {
     newChat: "새 대화",
     myAssistants: "내 어시스턴트",
     customerAssistants: "고객 어시스턴트",
-    trialReport: "평가 보고서",
     quotaAudit: "할당량 감사",
     createChat: "대화 생성",
     tenant: "계정 정보",

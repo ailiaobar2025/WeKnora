@@ -8,7 +8,6 @@ export default {
     newChat: "新对话",
     myAssistants: "我的助手",
     customerAssistants: "客户助手",
-    trialReport: "试用报告",
     quotaAudit: "额度审计",
     createChat: "创建对话",
     tenant: "账户信息",

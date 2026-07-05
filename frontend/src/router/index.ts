@@ -158,12 +158,6 @@ const router = createRouter({
           meta: { requiresInit: true, requiresAuth: true }
         },
         {
-          path: "trial-report",
-          name: "trialReport",
-          component: () => import("../views/know-hub/TrialReport.vue"),
-          meta: { requiresInit: true, requiresAuth: true, requiresKnowHubAdmin: true }
-        },
-        {
           path: "customer-assistants",
           name: "customerAssistants",
           component: () => import("../views/know-hub/CustomerAssistantAdmin.vue"),

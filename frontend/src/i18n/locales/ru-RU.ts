@@ -5,7 +5,6 @@ export default {
     newChat: 'Новый диалог',
     myAssistants: 'Мои ассистенты',
     customerAssistants: 'Ассистенты клиентов',
-    trialReport: 'Отчет о пробном периоде',
     quotaAudit: 'Аудит квот',
     createChat: 'Создать диалог',
     tenant: 'Информация об аккаунте',

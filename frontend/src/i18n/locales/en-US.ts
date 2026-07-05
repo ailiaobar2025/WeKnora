@@ -8,7 +8,6 @@ export default {
     newChat: 'New Chat',
     myAssistants: 'My Assistants',
     customerAssistants: 'Customer Assistants',
-    trialReport: 'Trial Report',
     quotaAudit: 'Quota Audit',
     createChat: 'Create Chat',
     tenant: 'Account Info',

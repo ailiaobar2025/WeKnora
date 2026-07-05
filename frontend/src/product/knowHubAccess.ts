@@ -9,7 +9,6 @@ const CUSTOMER_MENU_PATHS = new Set([
 const ADMIN_MENU_PATHS = new Set([
   ...CUSTOMER_MENU_PATHS,
   'customer-assistants',
-  'trial-report',
   'quota-audit',
 ])
 

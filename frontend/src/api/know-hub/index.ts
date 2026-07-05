@@ -1,27 +1,12 @@
 import { useAuthStore } from '@/stores/auth'
 import { getStoredEffectiveTenantId } from '@/utils/tenantContext.ts'
 
-export interface KnowHubReportResponse {
-  workspace_id: string
-  report: string
-}
-
 export interface KnowHubWorkspaceSummary {
   id: string
   name: string
   workspace_type: string
   owner_name: string
   status: string
-}
-
-export interface KnowHubAdminReport {
-  workspace: KnowHubWorkspaceSummary
-  report: string
-  error: string
-}
-
-export interface KnowHubAdminReportsResponse {
-  reports: KnowHubAdminReport[]
 }
 
 function getKnowHubBackendBaseUrl(): string {
@@ -60,14 +45,6 @@ async function requestKnowHub<T>(path: string, init: RequestInit = {}): Promise<
     return undefined as T
   }
   return response.json() as Promise<T>
-}
-
-export function getCurrentTenantReport(): Promise<KnowHubReportResponse> {
-  return requestKnowHub<KnowHubReportResponse>('/api/v1/report')
-}
-
-export function getAdminReports(): Promise<KnowHubAdminReportsResponse> {
-  return requestKnowHub<KnowHubAdminReportsResponse>('/api/v1/admin/reports')
 }
 
 export function bootstrapKnowHubWorkspace() {
