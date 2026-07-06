@@ -6,6 +6,20 @@ import { isKnowHubMenuPathVisible } from '@/product/knowHub'
 
 type MenuChild = Record<string, any>
 
+export interface FirstQueryState {
+  query: string
+  mentionedItems: any[]
+  modelId: string
+  imageFiles: any[]
+  attachmentFiles: any[]
+  knowledgeBaseIds: string[]
+  knowledgeIds: string[]
+  agentId: string
+  agentEnabled: boolean
+  webSearchEnabled: boolean
+  selectedCustomerAssistantId: string
+}
+
 interface MenuItem {
   title: string
   titleKey?: string
@@ -44,6 +58,7 @@ export const useMenuStore = defineStore('menuStore', () => {
   const firstModelId = ref('')
   const firstImageFiles = ref<any[]>([])
   const firstAttachmentFiles = ref<any[]>([])
+  const firstQueryState = ref<FirstQueryState | null>(null)
   const prefillQuery = ref('')
 
   const applyMenuTranslations = () => {
@@ -132,6 +147,18 @@ export const useMenuStore = defineStore('menuStore', () => {
     firstModelId.value = modelId
     firstImageFiles.value = imageFiles
     firstAttachmentFiles.value = attachmentFiles
+    if (!payload) {
+      firstQueryState.value = null
+    }
+  }
+
+  const setFirstQueryState = (payload: FirstQueryState | null) => {
+    firstQueryState.value = payload
+    firstQuery.value = payload?.query || ''
+    firstMentionedItems.value = payload?.mentionedItems || []
+    firstModelId.value = payload?.modelId || ''
+    firstImageFiles.value = payload?.imageFiles || []
+    firstAttachmentFiles.value = payload?.attachmentFiles || []
   }
 
   const setPrefillQuery = (q: string) => {
@@ -153,6 +180,7 @@ export const useMenuStore = defineStore('menuStore', () => {
     firstModelId,
     firstImageFiles,
     firstAttachmentFiles,
+    firstQueryState,
     prefillQuery,
     clearMenuArr,
     updatemenuArr,
@@ -160,6 +188,7 @@ export const useMenuStore = defineStore('menuStore', () => {
     updatasessionTitle,
     changeIsFirstSession,
     changeFirstQuery,
+    setFirstQueryState,
     setPrefillQuery,
     consumePrefillQuery
   }

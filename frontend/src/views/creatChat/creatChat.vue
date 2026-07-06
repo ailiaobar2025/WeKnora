@@ -231,7 +231,19 @@ const navigateToSession = async (sessionId: string, value: string, modelId: stri
     };
     usemenuStore.updataMenuChildren(obj);
     usemenuStore.changeIsFirstSession(true);
-    usemenuStore.changeFirstQuery(value, mentionedItems, modelId, imageFiles, attachmentFiles);
+    usemenuStore.setFirstQueryState({
+        query: value,
+        mentionedItems,
+        modelId,
+        imageFiles,
+        attachmentFiles,
+        knowledgeBaseIds: [...(settingsStore.settings.selectedKnowledgeBases || [])],
+        knowledgeIds: [...(settingsStore.settings.selectedFiles || [])],
+        agentId: settingsStore.selectedAgentId || '',
+        agentEnabled: settingsStore.isAgentStreamMode,
+        webSearchEnabled: settingsStore.isWebSearchEnabled,
+        selectedCustomerAssistantId: settingsStore.selectedCustomerAssistantId || '',
+    });
     router.push({
         path: `/platform/chat/${sessionId}`,
         query: assistantId ? { assistantId } : undefined,

@@ -167,7 +167,7 @@ const isAgentStreamSession = () => {
 const uiStore = useUIStore();
 const { navigateToKnowledgeBaseList } = useKnowledgeBaseCreationNavigation();
 const { t } = useI18n();
-const { firstQuery, firstMentionedItems, firstModelId, firstImageFiles, firstAttachmentFiles } = storeToRefs(usemenuStore);
+const { firstQuery, firstMentionedItems, firstModelId, firstImageFiles, firstAttachmentFiles, firstQueryState } = storeToRefs(usemenuStore);
 const { onChunk, error, startStream, stopStream, lastStreamRequest } = useStream();
 /** Snapshot of the in-flight HTTP request for attaching to the next assistant message. */
 const pendingStreamDebug = ref(null);
@@ -579,7 +579,7 @@ const handleStopGeneration = () => {
     // 保留 currentAssistantMessageId，Input-field 仍需用它调用 stop API
 };
 
-const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = [], attachmentFiles = []) => {
+const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = [], attachmentFiles = [], requestState = null) => {
     stopStream();
     prepareForNewOutgoingMessage();
     isReplying.value = true;
@@ -642,7 +642,7 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
     // Get agent mode status from settings store (prefer selectedAgentId for builtins)
     const agentEnabled = props.embeddedMode
         ? (props.agentId && props.agentId !== 'builtin-quick-answer')
-        : useSettingsStoreInstance.isAgentStreamMode;
+        : (requestState?.agentEnabled ?? useSettingsStoreInstance.isAgentStreamMode);
 
     // Get web search status from settings store
     const webSearchEnabled = props.embeddedMode ? false : useSettingsStoreInstance.isWebSearchEnabled;
@@ -656,8 +656,12 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
 
     // Get knowledge_base_ids from settings store (selected by user via KnowledgeBaseSelector)
     // Merge @mentioned KB/file IDs so retrieval uses the same targets user @mentioned (including shared KBs)
-    const sidebarKbIds = props.embeddedMode ? props.kbIds : (useSettingsStoreInstance.settings.selectedKnowledgeBases || []);
-    const sidebarFileIds = props.embeddedMode ? [] : (useSettingsStoreInstance.settings.selectedFiles || []);
+    const sidebarKbIds = props.embeddedMode
+        ? props.kbIds
+        : (requestState?.knowledgeBaseIds ?? useSettingsStoreInstance.settings.selectedKnowledgeBases ?? []);
+    const sidebarFileIds = props.embeddedMode
+        ? []
+        : (requestState?.knowledgeIds ?? useSettingsStoreInstance.settings.selectedFiles ?? []);
     const kbIdSet = new Set(sidebarKbIds);
     const fileIdSet = new Set(sidebarFileIds);
     for (const item of mentionedItems || []) {
@@ -672,11 +676,13 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
     const knowledgeIds = [...fileIdSet];
 
     // Get selected agent ID (backend resolves shared agent and its tenant from share relation)
-    const selectedAgentId = props.embeddedMode ? props.agentId : (useSettingsStoreInstance.selectedAgentId || '');
+    const selectedAgentId = props.embeddedMode
+        ? props.agentId
+        : (requestState?.agentId ?? useSettingsStoreInstance.selectedAgentId ?? '');
 
     const selectedCustomerAssistantId = props.embeddedMode || !useCustomerAssistantMode.value
         ? ''
-        : (useSettingsStoreInstance.selectedCustomerAssistantId || '');
+        : (requestState?.selectedCustomerAssistantId ?? useSettingsStoreInstance.selectedCustomerAssistantId ?? '');
     const assistantEndpoint = selectedCustomerAssistantId
         ? resolveKnowHubAssistantChatEndpoint(selectedCustomerAssistantId)
         : '';
@@ -691,7 +697,7 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
         knowledge_ids: knowledgeIds,
         agent_enabled: agentEnabled,
         agent_id: assistantEndpoint ? undefined : selectedAgentId,
-        web_search_enabled: webSearchEnabled,
+        web_search_enabled: requestState?.webSearchEnabled ?? webSearchEnabled,
         enable_memory: enableMemoryOverride,
         summary_model_id: modelId,
         mcp_service_ids: mcpServiceIds,
@@ -826,17 +832,37 @@ onMounted(async () => {
     isReplying.value = false;
 
     if (firstQuery.value) {
+        const initialState = firstQueryState.value;
         scrollLock.value = true;
         historyLoading.value = false;
-        if (firstModelId.value) {
+        const initialModelId = initialState?.modelId || firstModelId.value || '';
+        if (initialState) {
+            useSettingsStoreInstance.applyLastRequestState({
+                agent_id: initialState.agentId,
+                agent_enabled: initialState.agentEnabled,
+                model_id: initialState.modelId,
+                knowledge_base_ids: initialState.knowledgeBaseIds,
+                knowledge_ids: initialState.knowledgeIds,
+                web_search_enabled: initialState.webSearchEnabled,
+                customer_assistant_id: initialState.selectedCustomerAssistantId,
+            });
+        }
+        if (initialModelId) {
             useSettingsStoreInstance.updateConversationModels({
-                summaryModelId: firstModelId.value,
-                selectedChatModelId: firstModelId.value,
+                summaryModelId: initialModelId,
+                selectedChatModelId: initialModelId,
                 rerankModelId: '',
             });
         }
-        sendMsg(firstQuery.value, firstModelId.value || '', firstMentionedItems.value || [], firstImageFiles.value || [], firstAttachmentFiles.value || []);
-        usemenuStore.changeFirstQuery('', [], '', [], []);
+        sendMsg(
+            initialState?.query || firstQuery.value,
+            initialModelId,
+            initialState?.mentionedItems || firstMentionedItems.value || [],
+            initialState?.imageFiles || firstImageFiles.value || [],
+            initialState?.attachmentFiles || firstAttachmentFiles.value || [],
+            initialState,
+        );
+        usemenuStore.setFirstQueryState(null);
     } else {
         scrollLock.value = false;
         hasMoreHistory.value = true;

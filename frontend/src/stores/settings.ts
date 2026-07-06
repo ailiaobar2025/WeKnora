@@ -499,7 +499,11 @@ export const useSettingsStore = defineStore("settings", {
         }
         if (state.model_id !== undefined) {
           const current = this.settings.conversationModels || defaultSettings.conversationModels;
-          this.settings.conversationModels = { ...current, selectedChatModelId: state.model_id || "" };
+          this.settings.conversationModels = {
+            ...current,
+            summaryModelId: state.model_id || "",
+            selectedChatModelId: state.model_id || "",
+          };
         }
         if (Array.isArray(state.knowledge_base_ids)) {
           this.settings.selectedKnowledgeBases = [...state.knowledge_base_ids];
