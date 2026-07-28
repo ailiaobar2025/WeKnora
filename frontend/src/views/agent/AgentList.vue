@@ -48,7 +48,7 @@
           <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 600; color: var(--td-text-color-primary);">官方预制数字员工库</h3>
           <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--td-text-color-secondary);">预置行业标准 SOP、交付模板与审批规则，支持一键分发至当前 Workspace 供业务人员使用。</p>
           <div class="preset-cards-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-            <div v-for="preset in presetMarketEmployees" :key="preset.id" class="preset-card" style="border: 1px solid var(--td-component-border); padding: 16px; border-radius: 8px; background: var(--td-bg-color-container); display: flex; flex-direction: column; justify-content: space-between;">
+            <div v-for="preset in presetMarketEmployees" :key="preset.id" class="preset-employee-card" style="border: 1px solid var(--td-component-border); padding: 16px; border-radius: 8px; background: var(--td-bg-color-container); display: flex; flex-direction: column; justify-content: space-between; min-height: 180px;">
               <div>
                 <div style="display: flex; align-items: center; margin-bottom: 8px;">
                   <t-avatar size="medium" style="margin-right: 12px; background: var(--td-brand-color); color: #fff;">{{ preset.name.substring(0, 1) }}</t-avatar>
@@ -59,9 +59,14 @@
                 </div>
                 <p style="font-size: 12px; color: var(--td-text-color-secondary); margin: 8px 0 12px 0; line-height: 1.5; height: 36px; overflow: hidden;">{{ preset.desc }}</p>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px dashed var(--td-component-border);">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed var(--td-component-border);">
                 <span style="font-size: 11px; color: var(--td-success-color);">内置 SOP & 人工审批</span>
-                <t-button size="small" theme="primary" @click="installPresetEmployee(preset)">一键安装</t-button>
+                <t-button v-if="!isInstalled(preset.id)" size="small" theme="primary" @click="installPresetEmployee(preset)">
+                  一键安装
+                </t-button>
+                <t-tag v-else theme="success" variant="light" size="medium" style="padding: 4px 10px; font-weight: 500;">
+                  ✓ 已在岗
+                </t-tag>
               </div>
             </div>
           </div>
@@ -70,26 +75,28 @@
 
       <div v-if="activeTabMode === 'installed'" class="agent-list-main">
         <!-- 业务在岗数字员工展示区 -->
-        <div v-if="installedPresetAgents.length > 0" class="preset-installed-section" style="margin-bottom: 20px;">
-          <div class="agent-section-header" style="background: var(--td-brand-color-light); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px;">
-            <t-icon name="user-avatar" size="16px" style="color: var(--td-brand-color);" />
-            <span style="font-weight: 600; color: var(--td-brand-color);">已安装在岗的专业数字员工 ({{ installedPresetAgents.length }})</span>
+        <div v-if="installedPresetAgents.length > 0" class="preset-installed-section" style="margin-bottom: 28px; padding-bottom: 12px;">
+          <div class="agent-section-header" style="background: var(--td-brand-color-light); border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <t-icon name="user-avatar" size="18px" style="color: var(--td-brand-color);" />
+            <span style="font-weight: 600; color: var(--td-brand-color); font-size: 14px;">已安装在岗的专业数字员工 ({{ installedPresetAgents.length }})</span>
           </div>
-          <div class="agent-card-wrap" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-            <div v-for="emp in installedPresetAgents" :key="emp.id" class="agent-card" style="background: var(--td-bg-color-container); border: 1px solid var(--td-component-border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div class="preset-card-wrap" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+            <div v-for="emp in installedPresetAgents" :key="emp.id" class="preset-employee-card" style="background: var(--td-bg-color-container); border: 1px solid var(--td-component-border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
               <div>
                 <div style="display: flex; align-items: center; margin-bottom: 8px;">
                   <t-avatar size="medium" style="margin-right: 10px; background: var(--td-brand-color); color: #fff;">{{ emp.name.substring(0, 1) }}</t-avatar>
                   <div>
                     <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--td-text-color-primary);">{{ emp.name }}</h4>
-                    <t-tag size="small" theme="primary" variant="light">{{ emp.dept }}</t-tag>
+                    <t-tag size="small" theme="primary" variant="light" style="margin-top: 2px;">{{ emp.dept }}</t-tag>
                   </div>
                 </div>
-                <p style="font-size: 12px; color: var(--td-text-color-secondary); margin: 4px 0 12px 0; line-height: 1.5;">{{ emp.desc }}</p>
+                <p style="font-size: 12px; color: var(--td-text-color-secondary); margin: 6px 0 12px 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ emp.desc }}</p>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed var(--td-component-border);">
-                <span style="font-size: 11px; color: var(--td-success-color);">状态：就绪</span>
-                <t-button size="small" theme="primary" @click="startTaskWithEmployee(emp)">下发任务</t-button>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px dashed var(--td-component-border);">
+                <span style="font-size: 11px; color: var(--td-success-color); font-weight: 500;">● 在岗就绪</span>
+                <t-button size="small" theme="primary" @click="startTaskWithEmployee(emp)">
+                  下发任务
+                </t-button>
               </div>
             </div>
           </div>
@@ -905,6 +912,10 @@ const installedPresetAgents = ref([
   },
 ])
 
+const isInstalled = (id: string) => {
+  return installedPresetAgents.value.some((a) => a.id === id)
+}
+
 const installPresetEmployee = (preset: any) => {
   const exists = installedPresetAgents.value.some((a) => a.id === preset.id)
   if (!exists) {
@@ -915,8 +926,11 @@ const installPresetEmployee = (preset: any) => {
 }
 
 const startTaskWithEmployee = (emp: any) => {
-  MessagePlugin.info(`已调起【${emp.name}】，正在跳转至工作台...`)
-  router.push('/platform/workbench')
+  MessagePlugin.info(`已调起【${emp.name}】，正在进入工作台下发任务...`)
+  router.push({
+    path: '/platform/workbench',
+    query: { employeeId: emp.id, employeeName: emp.name }
+  })
 }
 import { deleteAgent, copyAgent, type CustomAgent } from '@/api/agent'
 import { useChatResourcesStore } from '@/stores/chatResources'

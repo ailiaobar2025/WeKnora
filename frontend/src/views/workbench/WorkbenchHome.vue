@@ -353,7 +353,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import {
   fetchDashboardSummary,
@@ -364,6 +364,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const taskPrompt = ref('')
@@ -488,6 +489,14 @@ const loadSummary = async () => {
 
 onMounted(() => {
   void loadSummary()
+  if (route.query.employeeId) {
+    const empId = route.query.employeeId as string
+    const empName = (route.query.employeeName as string) || '专业数字员工'
+    selectedEmployeeId.value = empId
+    taskPrompt.value = `请求【${empName}】协助处理业务任务：`
+    MessagePlugin.info(`已为您调起数字员工【${empName}】，请输入具体任务需求！`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 })
 
 const quickFillPrompt = (prompt: string) => {
