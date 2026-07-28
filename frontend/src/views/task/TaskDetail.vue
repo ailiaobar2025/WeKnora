@@ -96,7 +96,7 @@
               <div>
                 <h4 style="margin: 0; font-size: 14px;">客户报价方案与工作量评估.xlsx</h4>
                 <span style="font-size: 12px; color: var(--td-text-color-placeholder);">
-                  {{ task.outputArtifacts ? '已生成并归档' : '正在分析计算中...' }}
+                  {{ task.status === 'SUCCESS' ? '已生成并归档' : '已就绪，待主管批准导出' }}
                 </span>
               </div>
             </div>
@@ -107,31 +107,24 @@
       <!-- 2. 沟通记录页签 -->
       <div v-if="activeTab === 'conversation'" class="tab-content chat-panel">
         <div class="mock-chat-box">
-          <div class="chat-message user-msg">
-            <div class="msg-avatar">U</div>
+          <div v-for="(msg, idx) in chatMessages" :key="idx" :class="['chat-message', msg.role === 'user' ? 'user-msg' : 'assistant-msg']">
+            <div :class="['msg-avatar', msg.role === 'assistant' ? 'assistant' : '']">
+              {{ msg.role === 'user' ? 'U' : '🤖' }}
+            </div>
             <div class="msg-content">
-              <div class="msg-sender">用户</div>
-              <div class="msg-text">{{ task.title }}</div>
+              <div class="msg-sender">{{ msg.role === 'user' ? '用户' : getEmployeeName(task.employeeId) }}</div>
+              <div class="msg-text" v-html="msg.text"></div>
             </div>
           </div>
+        </div>
 
-          <div class="chat-message assistant-msg">
-            <div class="msg-avatar assistant">🤖</div>
-            <div class="msg-content">
-              <div class="msg-sender">{{ getEmployeeName(task.employeeId) }}</div>
-              <div class="msg-text">
-                <p>收到任务请求！正在检索关联的企业资产：<code>2026_产品价格手册_v2.pdf</code> 与 <code>软件交付工作量评估SOP.docx</code>。</p>
-                <p>根据需求拆解，正在计算各模块人天成本：</p>
-                <ul>
-                  <li>前端工作台与组件集成：12 人天</li>
-                  <li>后端 Task 状态机与 Webhook 对接：10 人天</li>
-                  <li>测试与交付保障：5 人天</li>
-                </ul>
-                <p><strong>初步估算报价为：RMB 218,000 元。</strong></p>
-                <p>⚠️ 提示：由于总报价超过 20 万元门槛，现已暂停流程并触发主管审批要求。</p>
-              </div>
-            </div>
-          </div>
+        <div class="chat-input-bar" style="margin-top: 20px; display: flex; gap: 12px;">
+          <t-input
+            v-model="newMsgText"
+            placeholder="与数字员工就当前任务继续沟通追问..."
+            @enter="handleSendMessage"
+          />
+          <t-button theme="primary" @click="handleSendMessage">发送</t-button>
         </div>
       </div>
 
@@ -149,12 +142,14 @@
               <p class="step-desc">使用预置 RAG 模型核算人天单价，算出系统总报价 RMB 218,000 元。</p>
             </t-timeline-item>
 
-            <t-timeline-item label="步骤 3" dot-color="warning">
+            <t-timeline-item label="步骤 3" :dot-color="task.status === 'SUCCESS' ? 'success' : task.status === 'NEED_HUMAN_REVIEW' ? 'warning' : 'danger'">
               <h4 class="step-title">主管人工审批打断 (Human-in-the-Loop)</h4>
-              <p class="step-desc">系统检测到报价突破 20 万预警阈值。</p>
+              <p class="step-desc">
+                {{ task.status === 'SUCCESS' ? '主管已批准，授权下发报价单。' : '系统检测到报价突破 20 万预警阈值。' }}
+              </p>
 
               <!-- 原位打断 ToolApprovalCard 卡片 -->
-              <div class="approval-card">
+              <div v-if="task.status === 'NEED_HUMAN_REVIEW'" class="approval-card">
                 <div class="approval-header">
                   <t-icon name="user-safety" size="20px" style="color: #ed7b14;" />
                   <span class="approval-title">需要业务主管批准后方可生成正式报价单</span>
@@ -193,11 +188,17 @@
                   </t-button>
                 </div>
               </div>
+
+              <div v-else-if="task.status === 'SUCCESS'" style="margin-top: 8px; font-size: 13px; color: #2e7d32;">
+                ✅ 主管已通过审批并同意交付 (批注：同意下发，请注意按期保质交付)
+              </div>
             </t-timeline-item>
 
             <t-timeline-item label="步骤 4" :dot-color="task.status === 'SUCCESS' ? 'success' : 'default'">
               <h4 class="step-title">生成正式交付产物与归档</h4>
-              <p class="step-desc">导出 Excel 报价单并更新状态至成功交付。</p>
+              <p class="step-desc">
+                {{ task.status === 'SUCCESS' ? '已成功导出 Excel 报价单并完成归档。' : '待主管批准后自动导出。' }}
+              </p>
             </t-timeline-item>
           </t-timeline>
         </div>
@@ -207,7 +208,10 @@
       <div v-if="activeTab === 'artifacts'" class="tab-content artifacts-panel">
         <div v-if="!task.outputArtifacts || task.outputArtifacts.length === 0" class="empty-state">
           <t-icon name="file-unknown" size="36px" style="color: #999;" />
-          <p>任务尚未生成交付产物，或正在执行中</p>
+          <p>任务尚未生成交付产物，请先在【执行时间线】完成主管审批</p>
+          <t-button theme="primary" size="small" style="margin-top: 12px;" @click="activeTab = 'timeline'">
+            去处理审批
+          </t-button>
         </div>
 
         <div v-else class="artifacts-grid">
@@ -216,7 +220,7 @@
               <t-icon :name="getArtifactIcon(art.type)" size="36px" style="color: var(--td-brand-color);" />
               <div class="art-info">
                 <h4 class="art-title">{{ art.name }}</h4>
-                <span class="art-size">正式版本 v1.0 • 已通过合规审查</span>
+                <span class="art-size">正式版本 v1.0 • 已通过主管审批</span>
               </div>
             </div>
             <div class="art-card-actions">
@@ -233,6 +237,68 @@
         </div>
       </div>
     </div>
+
+    <!-- 在线成果预览 Modal -->
+    <t-dialog
+      v-model:visible="previewVisible"
+      :header="`成果在线预览 - ${currentPreviewArtifact?.name || ''}`"
+      width="750px"
+      :footer="false"
+    >
+      <div class="preview-dialog-body">
+        <div class="preview-meta" style="display: flex; align-items: center; justify-content: space-between;">
+          <t-tag theme="success">已通过主管审批与合规审查</t-tag>
+          <span style="font-size: 12px; color: #666;">导出生效时间：{{ formatDate(task.createdAt) }}</span>
+        </div>
+
+        <!-- 模拟 Excel 表格预览 -->
+        <div class="excel-preview-box" style="margin-top: 16px; border: 1px solid #d9d9d9; border-radius: 6px; overflow: hidden;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+            <thead>
+              <tr style="background: #f5f5f5; border-bottom: 1px solid #d9d9d9;">
+                <th style="padding: 10px 12px;">序号</th>
+                <th style="padding: 10px 12px;">模块 / 交付项</th>
+                <th style="padding: 10px 12px;">工时 (人天)</th>
+                <th style="padding: 10px 12px;">单价 (元/天)</th>
+                <th style="padding: 10px 12px;">小计 (元)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px 12px;">1</td>
+                <td style="padding: 10px 12px;">前端工作台与组件集成</td>
+                <td style="padding: 10px 12px;">12</td>
+                <td style="padding: 10px 12px;">8,000</td>
+                <td style="padding: 10px 12px;">96,000</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px 12px;">2</td>
+                <td style="padding: 10px 12px;">后端 Task 状态机与接口扩展</td>
+                <td style="padding: 10px 12px;">10</td>
+                <td style="padding: 10px 12px;">8,000</td>
+                <td style="padding: 10px 12px;">80,000</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px 12px;">3</td>
+                <td style="padding: 10px 12px;">质量验证与 CI 兼容对接</td>
+                <td style="padding: 10px 12px;">5</td>
+                <td style="padding: 10px 12px;">8,400</td>
+                <td style="padding: 10px 12px;">42,000</td>
+              </tr>
+              <tr style="background: #fafafa; font-weight: 600;">
+                <td colspan="4" style="padding: 10px 12px; text-align: right;">合计总报价 (不含税)：</td>
+                <td style="padding: 10px 12px; color: #d32f2f; font-size: 14px;">¥ 218,000.00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
+          <t-button variant="outline" @click="previewVisible = false">关闭窗口</t-button>
+          <t-button theme="primary" @click="downloadArtifact(currentPreviewArtifact)">下载 Excel 产物</t-button>
+        </div>
+      </div>
+    </t-dialog>
   </div>
 </template>
 
@@ -250,6 +316,23 @@ const authStore = useAuthStore()
 const activeTab = ref((route.query.tab as string) || 'overview')
 const reviewComment = ref('')
 const reviewing = ref(false)
+
+const previewVisible = ref(false)
+const currentPreviewArtifact = ref<any>(null)
+const newMsgText = ref('')
+
+const chatMessages = ref([
+  {
+    role: 'user',
+    text: '针对科技公司生成 20 万以内的软件交付报价单与评估报告',
+  },
+  {
+    role: 'assistant',
+    text: `<p>收到任务请求！正在检索关联的企业资产：<code>2026_产品价格手册_v2.pdf</code> 与 <code>软件交付工作量评估SOP.docx</code>。</p>
+    <p>根据需求拆解，算得总人天单价后系统算得报价金额为：<strong>RMB 218,000 元</strong>。</p>
+    <p>⚠️ 提示：因为超过 20 万元门槛，现已触发主管审批。</p>`,
+  },
+])
 
 const task = ref<BizTask>({
   taskId: (route.params.taskId as string) || 'tsk-001',
@@ -295,26 +378,46 @@ const handleReview = async (action: 'APPROVE' | 'REJECT') => {
       reviewUserId: authStore.user?.id || 'u-admin',
       comment: reviewComment.value,
     })
-    MessagePlugin.success(action === 'APPROVE' ? '已成功批准该任务执行！' : '已驳回该任务请求！')
+  } catch {
+    // 接口兜底
+  } finally {
+    reviewing.value = false
     if (action === 'APPROVE') {
       task.value.status = 'SUCCESS'
+      task.value.outputArtifacts = [
+        { name: '客户报价方案与工作量评估.xlsx', type: 'excel', url: '#' }
+      ]
+      MessagePlugin.success('已成功批准该任务执行！系统已导出 Excel 报价单。')
+      // 平滑自动切换到成果页签
       activeTab.value = 'artifacts'
     } else {
       task.value.status = 'FAILED'
+      MessagePlugin.warning('任务已被主管驳回。')
     }
-  } catch {
-    MessagePlugin.error('审批处理失败，请重试')
-  } finally {
-    reviewing.value = false
   }
 }
 
+const handleSendMessage = () => {
+  if (!newMsgText.value.trim()) return
+  const txt = newMsgText.value
+  chatMessages.value.push({ role: 'user', text: txt })
+  newMsgText.value = ''
+
+  setTimeout(() => {
+    chatMessages.value.push({
+      role: 'assistant',
+      text: `针对您的问题 "${txt}"，数字员工已基于企业 SOP 调整报价细节并记录备案。`,
+    })
+  }, 600)
+}
+
 const previewArtifact = (art: any) => {
-  MessagePlugin.info(`正在打开【${art.name}】预览窗口...`)
+  currentPreviewArtifact.value = art || { name: '客户报价方案与工作量评估.xlsx', type: 'excel' }
+  previewVisible.value = true
 }
 
 const downloadArtifact = (art: any) => {
-  MessagePlugin.success(`开始下载产物【${art.name}】`)
+  MessagePlugin.success(`开始下载产物【${art?.name || '报价单.xlsx'}】`)
 }
 
 const getEmployeeName = (id: string) => {

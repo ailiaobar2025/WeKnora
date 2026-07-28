@@ -69,6 +69,31 @@
       </div>
 
       <div v-if="activeTabMode === 'installed'" class="agent-list-main">
+        <!-- 业务在岗数字员工展示区 -->
+        <div v-if="installedPresetAgents.length > 0" class="preset-installed-section" style="margin-bottom: 20px;">
+          <div class="agent-section-header" style="background: var(--td-brand-color-light); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px;">
+            <t-icon name="user-avatar" size="16px" style="color: var(--td-brand-color);" />
+            <span style="font-weight: 600; color: var(--td-brand-color);">已安装在岗的专业数字员工 ({{ installedPresetAgents.length }})</span>
+          </div>
+          <div class="agent-card-wrap" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+            <div v-for="emp in installedPresetAgents" :key="emp.id" class="agent-card" style="background: var(--td-bg-color-container); border: 1px solid var(--td-component-border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <t-avatar size="medium" style="margin-right: 10px; background: var(--td-brand-color); color: #fff;">{{ emp.name.substring(0, 1) }}</t-avatar>
+                  <div>
+                    <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--td-text-color-primary);">{{ emp.name }}</h4>
+                    <t-tag size="small" theme="primary" variant="light">{{ emp.dept }}</t-tag>
+                  </div>
+                </div>
+                <p style="font-size: 12px; color: var(--td-text-color-secondary); margin: 4px 0 12px 0; line-height: 1.5;">{{ emp.desc }}</p>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed var(--td-component-border);">
+                <span style="font-size: 11px; color: var(--td-success-color);">状态：就绪</span>
+                <t-button size="small" theme="primary" @click="startTaskWithEmployee(emp)">下发任务</t-button>
+              </div>
+            </div>
+          </div>
+        </div>
         <!-- creator filter removed; see KnowledgeBaseList for rationale.
              Card-level creator display + URL-state field are retained. -->
 
@@ -871,9 +896,27 @@ const presetMarketEmployees = ref([
   },
 ])
 
+const installedPresetAgents = ref([
+  {
+    id: 'preset-quote-expert',
+    name: '售前评估与报价专家',
+    dept: '售前与商业化部',
+    desc: '自动识别客户招标文件与需求清单，核算开发工作量与合规报价，生成标准 Excel 报价单并驱动主管审批。',
+  },
+])
+
 const installPresetEmployee = (preset: any) => {
+  const exists = installedPresetAgents.value.some((a) => a.id === preset.id)
+  if (!exists) {
+    installedPresetAgents.value.push(preset)
+  }
   MessagePlugin.success(`已成功将【${preset.name}】安装到当前 Workspace！`)
   activeTabMode.value = 'installed'
+}
+
+const startTaskWithEmployee = (emp: any) => {
+  MessagePlugin.info(`已调起【${emp.name}】，正在跳转至工作台...`)
+  router.push('/platform/workbench')
 }
 import { deleteAgent, copyAgent, type CustomAgent } from '@/api/agent'
 import { useChatResourcesStore } from '@/stores/chatResources'
