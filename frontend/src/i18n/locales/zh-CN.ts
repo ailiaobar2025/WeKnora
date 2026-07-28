@@ -1,7 +1,10 @@
 export default {
   menu: {
-    knowledgeBase: "知识库",
-    agents: "智能体",
+    workbench: "工作台",
+    knowledgeBase: "企业资产",
+    agents: "数字员工",
+    tasks: "任务",
+    operations: "运营",
     integrations: "发布集成",
     organizations: "共享空间",
     chat: "对话",

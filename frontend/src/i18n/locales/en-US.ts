@@ -1,7 +1,10 @@
 export default {
   menu: {
+    workbench: 'Workbench',
     knowledgeBase: 'Knowledge Base',
     agents: 'Agents',
+    tasks: 'Tasks',
+    operations: 'Operations',
     integrations: 'Publish & Integrations',
     organizations: 'Shared Spaces',
     chat: 'Chat',

@@ -1843,7 +1843,8 @@ const mcpOptions = computed<McpSelectOption[]>(() => {
   }
 
   for (const id of selectedIds) {
-    const mcp = serviceById.get(id);
+    const serviceId = String(id);
+    const mcp = serviceById.get(serviceId);
     if (mcp && !mcp.enabled) {
       options.push({
         label: `${mcp.name} (${t('mcpSettings.disabled')})`,
@@ -1853,7 +1854,7 @@ const mcpOptions = computed<McpSelectOption[]>(() => {
     } else if (!mcp) {
       options.push({
         label: t('agentEditor.mcp.unavailableService'),
-        value: id,
+        value: serviceId,
         disabled: true,
       });
     }

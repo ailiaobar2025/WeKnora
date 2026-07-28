@@ -397,6 +397,12 @@ const isMenuItemActive = (itemPath: string): boolean => {
     const currentRoute = route.name;
 
     switch (itemPath) {
+        case 'workbench':
+            return currentRoute === 'workbench';
+        case 'tasks':
+            return currentRoute === 'taskList' || currentRoute === 'taskDetail';
+        case 'operations':
+            return currentRoute === 'operations';
         case 'knowledge-bases':
             return currentRoute === 'knowledgeBaseList' ||
                 currentRoute === 'knowledgeBaseDetail' ||
@@ -433,7 +439,7 @@ const getIconActiveState = (itemPath: string) => {
 // 分离上下两部分菜单（使用 visibleMenuArr 以便 lite 模式过滤 logout）
 const topMenuItems = computed<MenuItem[]>(() => {
     return (visibleMenuArr.value as unknown as MenuItem[]).filter((item: MenuItem) =>
-        item.path === 'knowledge-bases' || item.path === 'agents' || item.path === 'organizations' || item.path === 'creatChat'
+        item.path === 'workbench' || item.path === 'agents' || item.path === 'tasks' || item.path === 'knowledge-bases' || item.path === 'operations' || item.path === 'creatChat'
     );
 });
 

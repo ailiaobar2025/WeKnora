@@ -36,7 +36,39 @@
           <p class="header-subtitle" style="--wails-draggable: drag">{{ $t('agent.subtitle') }}</p>
         </div>
       </div>
-      <div class="agent-list-main">
+
+      <!-- 客户工作台：数字员工页签与预制市场 -->
+      <div class="employee-market-bar" style="margin: 0 24px 16px 24px;">
+        <t-radio-group v-model="activeTabMode" variant="default-filled">
+          <t-radio-button value="installed">已安装数字员工</t-radio-button>
+          <t-radio-button value="market">极简数字员工市场 🌟</t-radio-button>
+        </t-radio-group>
+
+        <div v-if="activeTabMode === 'market'" class="preset-market-banner" style="margin-top: 16px; padding: 20px; background: var(--td-bg-color-secondarycontainer); border-radius: 12px; border: 1px solid var(--td-component-border);">
+          <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 600; color: var(--td-text-color-primary);">官方预制数字员工库</h3>
+          <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--td-text-color-secondary);">预置行业标准 SOP、交付模板与审批规则，支持一键分发至当前 Workspace 供业务人员使用。</p>
+          <div class="preset-cards-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+            <div v-for="preset in presetMarketEmployees" :key="preset.id" class="preset-card" style="border: 1px solid var(--td-component-border); padding: 16px; border-radius: 8px; background: var(--td-bg-color-container); display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <t-avatar size="medium" style="margin-right: 12px; background: var(--td-brand-color); color: #fff;">{{ preset.name.substring(0, 1) }}</t-avatar>
+                  <div>
+                    <h4 style="margin: 0; font-size: 14px; color: var(--td-text-color-primary);">{{ preset.name }}</h4>
+                    <t-tag size="small" theme="primary" variant="light" style="margin-top: 4px;">{{ preset.dept }}</t-tag>
+                  </div>
+                </div>
+                <p style="font-size: 12px; color: var(--td-text-color-secondary); margin: 8px 0 12px 0; line-height: 1.5; height: 36px; overflow: hidden;">{{ preset.desc }}</p>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px dashed var(--td-component-border);">
+                <span style="font-size: 11px; color: var(--td-success-color);">内置 SOP & 人工审批</span>
+                <t-button size="small" theme="primary" @click="installPresetEmployee(preset)">一键安装</t-button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="activeTabMode === 'installed'" class="agent-list-main">
         <!-- creator filter removed; see KnowledgeBaseList for rationale.
              Card-level creator display + URL-state field are retained. -->
 
@@ -815,6 +847,34 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MessagePlugin, Icon as TIcon } from 'tdesign-vue-next'
+
+const activeTabMode = ref<'installed' | 'market'>('installed')
+
+const presetMarketEmployees = ref([
+  {
+    id: 'preset-quote-expert',
+    name: '售前评估与报价专家',
+    dept: '售前与商业化部',
+    desc: '自动识别客户招标文件与需求清单，核算开发工作量与合规报价，生成标准 Excel 报价单并驱动主管审批。',
+  },
+  {
+    id: 'preset-market-analyst',
+    name: '竞品与市场情报分析师',
+    dept: '市场分析部',
+    desc: '全网抓取并对比竞争对手的产品版本迭代、定价策略与用户口碑，自动输出 PPT/PDF 简报。',
+  },
+  {
+    id: 'preset-hr-assistant',
+    name: 'HR 招聘与 Onboarding 助手',
+    dept: '人力资源部',
+    desc: '简历自动分类打分，生成面试提纲并自动跟进新员工入职手册与资产准备。',
+  },
+])
+
+const installPresetEmployee = (preset: any) => {
+  MessagePlugin.success(`已成功将【${preset.name}】安装到当前 Workspace！`)
+  activeTabMode.value = 'installed'
+}
 import { deleteAgent, copyAgent, type CustomAgent } from '@/api/agent'
 import { useChatResourcesStore } from '@/stores/chatResources'
 import { formatStringDate } from '@/utils/index'

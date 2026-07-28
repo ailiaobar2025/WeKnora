@@ -23,6 +23,8 @@ function isLiteSpaDefaultEntry(to: RouteLocationNormalized) {
   return (
     to.path === '/' ||
     to.path === '/platform' ||
+    to.path === '/platform/workbench' ||
+    to.name === 'workbench' ||
     to.path === '/platform/knowledge-bases' ||
     to.name === 'knowledgeBaseList'
   )
@@ -43,7 +45,7 @@ const router = createRouter({
   routes: [
     {
       path: "/",
-      redirect: "/platform/knowledge-bases",
+      redirect: "/platform/workbench",
     },
     {
       path: "/login",
@@ -51,15 +53,9 @@ const router = createRouter({
       component: () => import("../views/auth/Login.vue"),
       meta: { requiresAuth: false, requiresInit: false }
     },
-    // Embed chat is a separate entry (embed.html + embed-main.ts), not this SPA.
     {
       path: "/register",
       name: "registerByInvite",
-      // Share-link landing page reuses the Login form: the same Vue
-      // component renders both modes and detects ?token=xxx on mount
-      // to switch into invite-register flow. Avoids a parallel page
-      // that would duplicate the OIDC / language-switch / styling
-      // surface for one extra field.
       component: () => import("../views/auth/Login.vue"),
       meta: { requiresAuth: false, requiresInit: false }
     },
@@ -72,7 +68,6 @@ const router = createRouter({
     {
       path: "/join",
       name: "joinOrganization",
-      // 重定向到组织列表页，并将 code 参数转换为 invite_code
       redirect: (to) => {
         const code = to.query.code as string
         return {
@@ -91,10 +86,28 @@ const router = createRouter({
     {
       path: "/platform",
       name: "Platform",
-      redirect: "/platform/knowledge-bases",
+      redirect: "/platform/workbench",
       component: () => import("../views/platform/index.vue"),
       meta: { requiresInit: true, requiresAuth: true },
       children: [
+        {
+          path: "workbench",
+          name: "workbench",
+          component: () => import("../views/workbench/WorkbenchHome.vue"),
+          meta: { requiresInit: true, requiresAuth: true }
+        },
+        {
+          path: "tasks",
+          name: "taskList",
+          component: () => import("../views/task/TaskList.vue"),
+          meta: { requiresInit: true, requiresAuth: true }
+        },
+        {
+          path: "tasks/:taskId",
+          name: "taskDetail",
+          component: () => import("../views/task/TaskDetail.vue"),
+          meta: { requiresInit: true, requiresAuth: true }
+        },
         {
           path: "tenant",
           redirect: "/platform/settings"
