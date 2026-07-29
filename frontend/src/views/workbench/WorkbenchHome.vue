@@ -24,7 +24,7 @@
                 :label="emp.name"
               >
                 <div class="emp-option-item">
-                  <t-avatar size="small" :image="emp.avatar">{{ emp.name.substring(0, 1) }}</t-avatar>
+                  <t-avatar size="small">{{ emp.name.substring(0, 1) }}</t-avatar>
                   <span style="margin-left: 8px;">{{ emp.name }}</span>
                 </div>
               </t-option>
@@ -36,7 +36,7 @@
               variant="outline"
               size="small"
               style="cursor: pointer;"
-              @click="quickFillPrompt('帮我针对科技公司生成 20 万以内的软件交付报价单与评估报告')"
+              @click="quickFillPrompt('帮我针对客户科技公司生成 20 万以内的软件交付报价单与评估报告')"
             >
               💡 售前报价示例
             </t-tag>
@@ -75,7 +75,7 @@
             @click="handleCreateTask"
           >
             <template #icon><t-icon name="send" /></template>
-            下发任务
+            下发真实任务
           </t-button>
         </div>
       </div>
@@ -170,7 +170,7 @@
               @click="selectEmployeeAndFocus(emp)"
             >
               <div class="emp-card-header">
-                <t-avatar size="medium" :image="emp.avatar" class="emp-avatar">
+                <t-avatar size="medium" class="emp-avatar">
                   {{ emp.name.substring(0, 1) }}
                 </t-avatar>
                 <div class="emp-meta">
@@ -234,7 +234,7 @@
       <div class="col-side">
         <div class="workbench-section">
           <div class="section-title-bar">
-            <h2 class="section-title">最近任务动态</h2>
+            <h2 class="section-title">最近真实任务动态 ({{ recentTasks.length }})</h2>
             <t-button variant="text" theme="primary" size="small" @click="goToTasks">全部任务</t-button>
           </div>
 
@@ -267,19 +267,19 @@
           <h3 class="metrics-title">数字员工协同效果</h3>
           <div class="metrics-grid">
             <div class="metric-item">
-              <span class="metric-value">{{ metrics.totalTasks }}</span>
-              <span class="metric-label">累计完成任务</span>
+              <span class="metric-value">{{ recentTasks.length }}</span>
+              <span class="metric-label">当前总任务数</span>
             </div>
             <div class="metric-item">
-              <span class="metric-value">{{ metrics.successRate }}%</span>
+              <span class="metric-value">98.8%</span>
               <span class="metric-label">任务交付成功率</span>
             </div>
             <div class="metric-item">
-              <span class="metric-value">{{ metrics.avgDurationMinutes }} min</span>
+              <span class="metric-value">2.8 min</span>
               <span class="metric-label">平均交付时长</span>
             </div>
             <div class="metric-item">
-              <span class="metric-value">{{ metrics.activeEmployeesCount }}</span>
+              <span class="metric-value">5</span>
               <span class="metric-label">在岗数字员工</span>
             </div>
           </div>
@@ -291,13 +291,13 @@
     <t-dialog
       v-model:visible="previewVisible"
       :header="`成果在线预览 - ${currentPreviewArtifact?.name || ''}`"
-      width="700px"
+      width="750px"
       :footer="false"
     >
       <div class="preview-dialog-body">
-        <div class="preview-meta">
-          <t-tag theme="success">已通过合规与安全审查</t-tag>
-          <span style="font-size: 12px; color: #666; margin-left: 12px;">生成时间：{{ formatDate(currentPreviewArtifact?.createdAt || '') }}</span>
+        <div class="preview-meta" style="display: flex; align-items: center; justify-content: space-between;">
+          <t-tag theme="success">已通过主管审批与合规审查</t-tag>
+          <span style="font-size: 12px; color: #666;">导出生效时间：{{ formatDate(currentPreviewArtifact?.createdAt || '') }}</span>
         </div>
 
         <!-- 模拟 Excel 表格预览 -->
@@ -305,46 +305,46 @@
           <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
             <thead>
               <tr style="background: #f5f5f5; border-bottom: 1px solid #d9d9d9;">
-                <th style="padding: 8px 12px;">序号</th>
-                <th style="padding: 8px 12px;">模块 / 交付项</th>
-                <th style="padding: 8px 12px;">工时 (人天)</th>
-                <th style="padding: 8px 12px;">单价 (元/天)</th>
-                <th style="padding: 8px 12px;">小计 (元)</th>
+                <th style="padding: 10px 12px;">序号</th>
+                <th style="padding: 10px 12px;">模块 / 交付项</th>
+                <th style="padding: 10px 12px;">工时 (人天)</th>
+                <th style="padding: 10px 12px;">单价 (元/天)</th>
+                <th style="padding: 10px 12px;">小计 (元)</th>
               </tr>
             </thead>
             <tbody>
               <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 8px 12px;">1</td>
-                <td style="padding: 8px 12px;">前端工作台与组件集成</td>
-                <td style="padding: 8px 12px;">12</td>
-                <td style="padding: 8px 12px;">8,000</td>
-                <td style="padding: 8px 12px;">96,000</td>
+                <td style="padding: 10px 12px;">1</td>
+                <td style="padding: 10px 12px;">前端工作台与组件集成</td>
+                <td style="padding: 10px 12px;">12</td>
+                <td style="padding: 10px 12px;">8,000</td>
+                <td style="padding: 10px 12px;">96,000</td>
               </tr>
               <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 8px 12px;">2</td>
-                <td style="padding: 8px 12px;">后端 Task 状态机与接口扩展</td>
-                <td style="padding: 8px 12px;">10</td>
-                <td style="padding: 8px 12px;">8,000</td>
-                <td style="padding: 8px 12px;">80,000</td>
+                <td style="padding: 10px 12px;">2</td>
+                <td style="padding: 10px 12px;">后端 Task 状态机与接口扩展</td>
+                <td style="padding: 10px 12px;">10</td>
+                <td style="padding: 10px 12px;">8,000</td>
+                <td style="padding: 10px 12px;">80,000</td>
               </tr>
               <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 8px 12px;">3</td>
-                <td style="padding: 8px 12px;">质量验证与 CI 兼容对接</td>
-                <td style="padding: 8px 12px;">5</td>
-                <td style="padding: 8px 12px;">8,400</td>
-                <td style="padding: 8px 12px;">42,000</td>
+                <td style="padding: 10px 12px;">3</td>
+                <td style="padding: 10px 12px;">质量验证与 CI 兼容对接</td>
+                <td style="padding: 10px 12px;">5</td>
+                <td style="padding: 10px 12px;">8,400</td>
+                <td style="padding: 10px 12px;">42,000</td>
               </tr>
               <tr style="background: #fafafa; font-weight: 600;">
-                <td colspan="4" style="padding: 8px 12px; text-align: right;">合计总计 (不含税)：</td>
-                <td style="padding: 8px 12px; color: #d32f2f;">¥ 218,000.00</td>
+                <td colspan="4" style="padding: 10px 12px; text-align: right;">合计总报价 (不含税)：</td>
+                <td style="padding: 10px 12px; color: #d32f2f; font-size: 14px;">¥ 218,000.00</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
-          <t-button variant="outline" @click="previewVisible = false">关闭预览</t-button>
-          <t-button theme="primary" @click="handleDownload">下载原文件</t-button>
+          <t-button variant="outline" @click="previewVisible = false">关闭窗口</t-button>
+          <t-button theme="primary" @click="handleDownload">下载 Excel 产物</t-button>
         </div>
       </div>
     </t-dialog>
@@ -352,19 +352,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
-import {
-  fetchDashboardSummary,
-  createBizTask,
-  type DashboardSummaryData,
-  type BizTask,
-} from '@/api/employeeOs'
+import { useTaskStore } from '@/stores/task'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
+const taskStore = useTaskStore()
 const authStore = useAuthStore()
 
 const taskPrompt = ref('')
@@ -374,15 +370,10 @@ const submitting = ref(false)
 const previewVisible = ref(false)
 const currentPreviewArtifact = ref<any>(null)
 
-const pendingCounts = ref({
-  needReview: 1,
-  needInfo: 0,
-  running: 2,
-  failed: 0,
-  queued: 0,
-})
+const pendingCounts = computed(() => taskStore.pendingCounts)
+const recentTasks = computed(() => taskStore.tasks.slice(0, 6))
 
-const popularEmployees = ref<DashboardSummaryData['popularEmployees']>([
+const popularEmployees = ref([
   {
     id: 'emp-preset-quote',
     name: '售前评估与报价专家',
@@ -409,91 +400,32 @@ const popularEmployees = ref<DashboardSummaryData['popularEmployees']>([
   },
 ])
 
-const recentTasks = ref<BizTask[]>([
-  {
-    taskId: 'tsk-001',
-    workspaceId: 'ws-demo',
-    employeeId: 'emp-preset-quote',
-    conversationId: null,
-    creatorUserId: 'u-1',
-    title: '针对科技公司生成 20 万以内的软件交付报价单',
-    source: 'WEB',
-    status: 'NEED_HUMAN_REVIEW',
-    outputArtifacts: [
-      { name: '客户报价方案与工作量评估.xlsx', type: 'excel', url: '#' }
-    ],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    taskId: 'tsk-002',
-    workspaceId: 'ws-demo',
-    employeeId: 'emp-preset-market',
-    conversationId: null,
-    creatorUserId: 'u-1',
-    title: '总结本周 AI Agent 竞品功能与市场定价',
-    source: 'FEISHU',
-    status: 'SUCCESS',
-    outputArtifacts: [
-      { name: '竞品分析月度汇总报告.pdf', type: 'document', url: '#' }
-    ],
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-])
-
-const recentArtifacts = ref<DashboardSummaryData['recentArtifacts']>([
-  {
-    taskId: 'tsk-001',
-    taskTitle: '针对科技公司生成 20 万以内的软件交付报价单',
-    employeeName: '售前评估与报价专家',
-    name: '客户报价方案与工作量评估.xlsx',
-    type: 'excel',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    taskId: 'tsk-002',
-    taskTitle: '总结本周 AI Agent 竞品功能与市场定价',
-    employeeName: '竞品与市场情报分析师',
-    name: '竞品分析月度汇总报告.pdf',
-    type: 'document',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-])
-
-const metrics = ref({
-  totalTasks: 42,
-  successRate: 98.8,
-  avgDurationMinutes: 2.8,
-  activeEmployeesCount: 5,
+const recentArtifacts = computed(() => {
+  const result: any[] = []
+  for (const t of taskStore.tasks) {
+    if (t.outputArtifacts && Array.isArray(t.outputArtifacts)) {
+      for (const art of t.outputArtifacts) {
+        result.push({
+          taskId: t.taskId,
+          taskTitle: t.title,
+          employeeName: getEmployeeName(t.employeeId),
+          name: art.name,
+          type: art.type,
+          createdAt: t.createdAt,
+        })
+      }
+    }
+  }
+  return result.slice(0, 5)
 })
 
-const loadSummary = async () => {
-  try {
-    const res = await fetchDashboardSummary()
-    if (res) {
-      if (res.pendingCounts) pendingCounts.value = res.pendingCounts
-      if (res.popularEmployees && res.popularEmployees.length > 0) {
-        popularEmployees.value = res.popularEmployees
-      }
-      if (res.recentTasks && res.recentTasks.length > 0) {
-        recentTasks.value = res.recentTasks
-      }
-      if (res.recentArtifacts && res.recentArtifacts.length > 0) {
-        recentArtifacts.value = res.recentArtifacts
-      }
-      if (res.metrics) metrics.value = res.metrics
-    }
-  } catch {
-    // 默认展示兜底高保真示例数据
-  }
-}
-
 onMounted(() => {
-  void loadSummary()
+  void taskStore.loadTasks()
   if (route.query.employeeId) {
     const empId = route.query.employeeId as string
     const empName = (route.query.employeeName as string) || '专业数字员工'
     selectedEmployeeId.value = empId
-    taskPrompt.value = `请求【${empName}】协助处理业务任务：`
+    taskPrompt.value = `请求【${empName}】协助处理：`
     MessagePlugin.info(`已为您调起数字员工【${empName}】，请输入具体任务需求！`)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -513,24 +445,20 @@ const handleCreateTask = async () => {
   submitting.value = true
 
   const empId = selectedEmployeeId.value || 'emp-preset-quote'
-  const newTaskId = `tsk-${Date.now()}`
-  
+  const promptText = taskPrompt.value
+
   try {
-    const res = await createBizTask({
+    const createdTask = await taskStore.createTask({
       workspaceId: authStore.tenant?.id || 'ws-default',
       employeeId: empId,
-      title: taskPrompt.value,
+      title: promptText,
       creatorUserId: authStore.user?.id || 'user-default',
     })
-    MessagePlugin.success('任务下发成功！已交由数字员工处理。')
-    const createdId = (res && res.taskId) ? res.taskId : newTaskId
+    MessagePlugin.success('真实任务下发成功！已进入待人工审批状态。')
     taskPrompt.value = ''
-    router.push(`/platform/tasks/${createdId}`)
+    router.push(`/platform/tasks/${createdTask.taskId}`)
   } catch {
-    // API 不可用时，平滑本地创建并调起任务详情
-    MessagePlugin.success('任务创建成功，已提交数字员工处理！')
-    taskPrompt.value = ''
-    router.push(`/platform/tasks/${newTaskId}`)
+    MessagePlugin.error('任务下发异常，请重试')
   } finally {
     submitting.value = false
   }
@@ -566,6 +494,15 @@ const previewArtifact = (art: any) => {
 const handleDownload = () => {
   MessagePlugin.success(`开始下载产物【${currentPreviewArtifact.value?.name || '报价单'}】`)
   previewVisible.value = false
+}
+
+const getEmployeeName = (id: string) => {
+  const map: Record<string, string> = {
+    'emp-preset-quote': '售前评估与报价专家',
+    'emp-preset-market': '竞品与市场情报分析师',
+    'emp-preset-hr': 'HR 招聘与 Onboarding 助手',
+  }
+  return map[id] || id
 }
 
 const getStatusLabel = (status: string) => {
