@@ -15,6 +15,11 @@ services:
       # For remote deployment, set this to the remote App's service port.
       - APP_PORT=${APP_BACKEND_PORT:-8080}
       - APP_SCHEME=${APP_SCHEME:-http}
+      - EMPLOYEE_OS_HOST=${EMPLOYEE_OS_HOST:-host.docker.internal}
+      - EMPLOYEE_OS_PORT=${EMPLOYEE_OS_PORT:-3000}
+      - EMPLOYEE_OS_SCHEME=${EMPLOYEE_OS_SCHEME:-http}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # NOTE: If using a remote App backend, comment out or remove the depends_on
     # block below and set APP_HOST/APP_BACKEND_PORT/APP_SCHEME in your .env file.
     depends_on:

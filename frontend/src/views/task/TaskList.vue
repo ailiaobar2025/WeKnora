@@ -128,19 +128,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useTaskStore } from '@/stores/task'
 import { MessagePlugin } from 'tdesign-vue-next'
+import { fetchAvailableEmployees, type TaskStatus } from '@/api/employeeOs'
 
 const router = useRouter()
 const route = useRoute()
 const taskStore = useTaskStore()
 
-const viewScope = ref('my')
-const selectedStatus = ref((route.query.status as string) || '')
+const viewScope = ref<'my' | 'team'>('my')
+const selectedStatus = ref<TaskStatus | ''>((route.query.status as TaskStatus) || '')
 const searchKeyword = ref('')
 const loading = computed(() => taskStore.loading)
+const employeeNames = ref<Record<string, string>>({})
 
 const statusOptions = [
   { label: '全部状态', value: '' },
@@ -154,8 +156,40 @@ const statusOptions = [
   { label: '超时终止 (TIMEOUT)', value: 'TIMEOUT' },
 ]
 
+function errorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message
+    if (typeof message === 'string' && message) return message
+  }
+  return fallback
+}
+
+async function loadTaskList(showSuccess = false) {
+  try {
+    await taskStore.loadTasks({
+      status: selectedStatus.value || undefined,
+      scope: viewScope.value,
+      limit: 100,
+    })
+    if (showSuccess) MessagePlugin.success('已刷新最新任务列表')
+  } catch (error: unknown) {
+    MessagePlugin.error(errorMessage(error, '任务列表加载失败'))
+  }
+}
+
 onMounted(() => {
-  void taskStore.loadTasks(undefined, selectedStatus.value)
+  void loadTaskList()
+  void fetchAvailableEmployees()
+    .then((response) => {
+      employeeNames.value = Object.fromEntries(
+        response.data.map((employee) => [employee.employeeId, employee.name]),
+      )
+    })
+    .catch(() => undefined)
+})
+
+watch([viewScope, selectedStatus], () => {
+  void loadTaskList()
 })
 
 const filteredTasks = computed(() => {
@@ -174,8 +208,7 @@ const filteredTasks = computed(() => {
 })
 
 const handleRefresh = async () => {
-  await taskStore.loadTasks()
-  MessagePlugin.success('已刷新最新任务列表！')
+  await loadTaskList(true)
 }
 
 const goToWorkbench = () => {
@@ -187,12 +220,7 @@ const openDetail = (taskId: string, tab?: string) => {
 }
 
 const getEmployeeName = (id: string) => {
-  const map: Record<string, string> = {
-    'emp-preset-quote': '售前评估与报价专家',
-    'emp-preset-market': '竞品与市场情报分析师',
-    'emp-preset-hr': 'HR 招聘与 Onboarding 助手',
-  }
-  return map[id] || id
+  return employeeNames.value[id] || id
 }
 
 const getStatusLabel = (status: string) => {

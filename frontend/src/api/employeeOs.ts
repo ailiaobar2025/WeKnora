@@ -15,17 +15,27 @@ export interface BizTask {
   workspaceId: string
   employeeId: string
   conversationId: string | null
+  executionId: string | null
+  assistantMessageId: string | null
+  pendingApprovalId: string | null
   creatorUserId: string
   title: string
   source: string
   status: TaskStatus
   outputArtifacts: Array<{
     name: string
+    artifactId: string
     type: string
-    url?: string;
-    description?: string;
+    url: string
+    createdAt: string
   }> | null
+  progress: number
+  errorMessage: string | null
+  startedAt: string | null
+  completedAt: string | null
   createdAt: string
+  updatedAt: string
+  version: number
 }
 
 export interface DashboardSummaryData {
@@ -64,64 +74,80 @@ export interface DashboardSummaryData {
 }
 
 export interface CreateTaskPayload {
-  workspaceId: string
   employeeId: string
   title: string
-  creatorUserId: string
-  conversationId?: string
   source?: string
+}
+
+export interface BizEmployee {
+  employeeId: string
+  workspaceId: string
+  name: string
+  avatarUrl: string | null
+  description: string | null
+  agentIdRef: string
+  status: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface HitLReviewPayload {
   action: 'APPROVE' | 'REJECT' | 'MODIFY'
-  reviewUserId: string
   comment?: string
   modifiedPayload?: Record<string, any>
 }
 
+const EMPLOYEE_OS_API = '/employee-os/api/v1'
+
 // 1. 获取 Dashboard 聚合摘要
 export function fetchDashboardSummary(workspaceId?: string) {
   const query = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : ''
-  return get<DashboardSummaryData>(`/api/v1/dashboard/summary${query}`)
+  return get<DashboardSummaryData>(`${EMPLOYEE_OS_API}/dashboard/summary${query}`)
 }
 
 // 2. 任务列表查询
 export function fetchTaskList(params: {
-  workspaceId?: string
   employeeId?: string
   status?: string
   page?: number
   limit?: number
+  scope?: 'my' | 'team'
 }) {
   const queryParts: string[] = []
-  if (params.workspaceId) queryParts.push(`workspaceId=${encodeURIComponent(params.workspaceId)}`)
   if (params.employeeId) queryParts.push(`employeeId=${encodeURIComponent(params.employeeId)}`)
   if (params.status) queryParts.push(`status=${encodeURIComponent(params.status)}`)
   if (params.page) queryParts.push(`page=${params.page}`)
   if (params.limit) queryParts.push(`limit=${params.limit}`)
+  if (params.scope) queryParts.push(`scope=${params.scope}`)
 
   const queryString = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''
   return get<{ data: BizTask[]; total: number; page: number; limit: number }>(
-    `/api/v1/tasks${queryString}`
+    `${EMPLOYEE_OS_API}/tasks${queryString}`
   )
 }
 
 // 3. 任务详情获取
 export function fetchTaskDetail(taskId: string) {
-  return get<BizTask>(`/api/v1/tasks/${encodeURIComponent(taskId)}`)
+  return get<BizTask>(`${EMPLOYEE_OS_API}/tasks/${encodeURIComponent(taskId)}`)
+}
+
+export function fetchAvailableEmployees() {
+  return get<{ data: BizEmployee[]; total: number; page: number; limit: number }>(
+    `${EMPLOYEE_OS_API}/employees/available`
+  )
 }
 
 // 4. 创建新任务
 export function createBizTask(payload: CreateTaskPayload) {
-  return post<BizTask>('/api/v1/tasks', payload)
+  return post<BizTask>(`${EMPLOYEE_OS_API}/tasks`, payload)
 }
 
 // 5. 人工审批/干预任务
 export function reviewBizTask(taskId: string, payload: HitLReviewPayload) {
-  return post<BizTask>(`/api/v1/tasks/${encodeURIComponent(taskId)}/review`, payload)
+  return post<BizTask>(`${EMPLOYEE_OS_API}/tasks/${encodeURIComponent(taskId)}/review`, payload)
 }
 
 // 6. 更新任务状态（例如补充资料或取消任务）
 export function updateBizTask(taskId: string, payload: Partial<BizTask>) {
-  return patch<BizTask>(`/api/v1/tasks/${encodeURIComponent(taskId)}`, payload)
+  return patch<BizTask>(`${EMPLOYEE_OS_API}/tasks/${encodeURIComponent(taskId)}`, payload)
 }

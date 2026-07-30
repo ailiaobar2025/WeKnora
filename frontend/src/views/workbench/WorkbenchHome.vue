@@ -62,7 +62,7 @@
 
         <div class="input-bottom-bar">
           <div class="attach-actions">
-            <t-button variant="text" size="small" @click="handleUploadAttach">
+            <t-button variant="text" size="small" disabled>
               <template #icon><t-icon name="attach" /></template>
               添加附件资料 (SOP / 需求文档)
             </t-button>
@@ -71,7 +71,7 @@
             theme="primary"
             size="medium"
             :loading="submitting"
-            :disabled="!taskPrompt.trim()"
+            :disabled="!taskPrompt.trim() || !selectedEmployeeId"
             @click="handleCreateTask"
           >
             <template #icon><t-icon name="send" /></template>
@@ -183,7 +183,9 @@
                 <span class="emp-stat">包含模板与审批规则</span>
               </div>
               <div class="emp-card-footer">
-                <span class="success-rate">成功率 {{ emp.successRate }}%</span>
+                <span class="success-rate">
+                  {{ emp.successRate === null ? '暂无完成数据' : `成功率 ${emp.successRate}%` }}
+                </span>
                 <t-button size="small" variant="outline" theme="primary" @click.stop="selectEmployeeAndFocus(emp)">
                   立即交任务
                 </t-button>
@@ -267,19 +269,19 @@
           <h3 class="metrics-title">数字员工协同效果</h3>
           <div class="metrics-grid">
             <div class="metric-item">
-              <span class="metric-value">{{ recentTasks.length }}</span>
-              <span class="metric-label">当前总任务数</span>
+              <span class="metric-value">{{ taskMetrics.total }}</span>
+              <span class="metric-label">当前加载任务</span>
             </div>
             <div class="metric-item">
-              <span class="metric-value">98.8%</span>
+              <span class="metric-value">{{ taskMetrics.successRate }}</span>
               <span class="metric-label">任务交付成功率</span>
             </div>
             <div class="metric-item">
-              <span class="metric-value">2.8 min</span>
+              <span class="metric-value">{{ taskMetrics.avgDuration }}</span>
               <span class="metric-label">平均交付时长</span>
             </div>
             <div class="metric-item">
-              <span class="metric-value">5</span>
+              <span class="metric-value">{{ taskMetrics.activeEmployees }}</span>
               <span class="metric-label">在岗数字员工</span>
             </div>
           </div>
@@ -287,67 +289,6 @@
       </div>
     </div>
 
-    <!-- 在线成果预览模态框 Modal -->
-    <t-dialog
-      v-model:visible="previewVisible"
-      :header="`成果在线预览 - ${currentPreviewArtifact?.name || ''}`"
-      width="750px"
-      :footer="false"
-    >
-      <div class="preview-dialog-body">
-        <div class="preview-meta" style="display: flex; align-items: center; justify-content: space-between;">
-          <t-tag theme="success">已通过主管审批与合规审查</t-tag>
-          <span style="font-size: 12px; color: #666;">导出生效时间：{{ formatDate(currentPreviewArtifact?.createdAt || '') }}</span>
-        </div>
-
-        <!-- 模拟 Excel 表格预览 -->
-        <div class="excel-preview-box" style="margin-top: 16px; border: 1px solid #d9d9d9; border-radius: 6px; overflow: hidden;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
-            <thead>
-              <tr style="background: #f5f5f5; border-bottom: 1px solid #d9d9d9;">
-                <th style="padding: 10px 12px;">序号</th>
-                <th style="padding: 10px 12px;">模块 / 交付项</th>
-                <th style="padding: 10px 12px;">工时 (人天)</th>
-                <th style="padding: 10px 12px;">单价 (元/天)</th>
-                <th style="padding: 10px 12px;">小计 (元)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 10px 12px;">1</td>
-                <td style="padding: 10px 12px;">前端工作台与组件集成</td>
-                <td style="padding: 10px 12px;">12</td>
-                <td style="padding: 10px 12px;">8,000</td>
-                <td style="padding: 10px 12px;">96,000</td>
-              </tr>
-              <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 10px 12px;">2</td>
-                <td style="padding: 10px 12px;">后端 Task 状态机与接口扩展</td>
-                <td style="padding: 10px 12px;">10</td>
-                <td style="padding: 10px 12px;">8,000</td>
-                <td style="padding: 10px 12px;">80,000</td>
-              </tr>
-              <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 10px 12px;">3</td>
-                <td style="padding: 10px 12px;">质量验证与 CI 兼容对接</td>
-                <td style="padding: 10px 12px;">5</td>
-                <td style="padding: 10px 12px;">8,400</td>
-                <td style="padding: 10px 12px;">42,000</td>
-              </tr>
-              <tr style="background: #fafafa; font-weight: 600;">
-                <td colspan="4" style="padding: 10px 12px; text-align: right;">合计总报价 (不含税)：</td>
-                <td style="padding: 10px 12px; color: #d32f2f; font-size: 14px;">¥ 218,000.00</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
-          <t-button variant="outline" @click="previewVisible = false">关闭窗口</t-button>
-          <t-button theme="primary" @click="handleDownload">下载 Excel 产物</t-button>
-        </div>
-      </div>
-    </t-dialog>
   </div>
 </template>
 
@@ -356,49 +297,32 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useTaskStore } from '@/stores/task'
-import { useAuthStore } from '@/stores/auth'
+import { fetchAvailableEmployees, type BizEmployee } from '@/api/employeeOs'
 
 const router = useRouter()
 const route = useRoute()
 const taskStore = useTaskStore()
-const authStore = useAuthStore()
-
 const taskPrompt = ref('')
-const selectedEmployeeId = ref<string | undefined>('emp-preset-quote')
+const selectedEmployeeId = ref<string | undefined>()
 const submitting = ref(false)
-
-const previewVisible = ref(false)
-const currentPreviewArtifact = ref<any>(null)
+const employees = ref<BizEmployee[]>([])
 
 const pendingCounts = computed(() => taskStore.pendingCounts)
 const recentTasks = computed(() => taskStore.tasks.slice(0, 6))
 
-const popularEmployees = ref([
-  {
-    id: 'emp-preset-quote',
-    name: '售前评估与报价专家',
-    role: '自动分析需求，核算成本与生成标准报价单',
-    department: '售前与商业化部',
-    taskCount: 18,
-    successRate: 99.2,
-  },
-  {
-    id: 'emp-preset-market',
-    name: '竞品与市场情报分析师',
-    role: '自动监控行业报告与竞品定价动态',
-    department: '市场分析部',
-    taskCount: 12,
-    successRate: 98.0,
-  },
-  {
-    id: 'emp-preset-hr',
-    name: 'HR 招聘与 Onboarding 助手',
-    role: '自动筛选简历与安排入职流程',
-    department: '人力资源部',
-    taskCount: 8,
-    successRate: 97.5,
-  },
-])
+const popularEmployees = computed(() => employees.value.slice(0, 6).map((employee) => {
+  const employeeTasks = taskStore.tasks.filter((task) => task.employeeId === employee.employeeId)
+  const finished = employeeTasks.filter((task) => ['SUCCESS', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(task.status))
+  const succeeded = finished.filter((task) => task.status === 'SUCCESS').length
+  return {
+    id: employee.employeeId,
+    name: employee.name,
+    role: employee.description || '数字员工',
+    department: '已发布',
+    taskCount: employeeTasks.length,
+    successRate: finished.length ? Number(((succeeded / finished.length) * 100).toFixed(1)) : null,
+  }
+}))
 
 const recentArtifacts = computed(() => {
   const result: any[] = []
@@ -411,7 +335,8 @@ const recentArtifacts = computed(() => {
           employeeName: getEmployeeName(t.employeeId),
           name: art.name,
           type: art.type,
-          createdAt: t.createdAt,
+          url: art.url,
+          createdAt: art.createdAt,
         })
       }
     }
@@ -419,46 +344,90 @@ const recentArtifacts = computed(() => {
   return result.slice(0, 5)
 })
 
-onMounted(() => {
-  void taskStore.loadTasks()
+const taskMetrics = computed(() => {
+  const completed = taskStore.tasks.filter((task) => task.status === 'SUCCESS')
+  const durations = taskStore.tasks.flatMap((task) => {
+    if (!task.startedAt || !task.completedAt) return []
+    return [(new Date(task.completedAt).getTime() - new Date(task.startedAt).getTime()) / 60000]
+  })
+  const average = durations.length
+    ? `${(durations.reduce((sum, value) => sum + value, 0) / durations.length).toFixed(1)} min`
+    : '-'
+  return {
+    total: taskStore.tasks.length,
+    successRate: taskStore.tasks.length
+      ? `${((completed.length / taskStore.tasks.length) * 100).toFixed(1)}%`
+      : '-',
+    avgDuration: average,
+    activeEmployees: employees.value.length,
+  }
+})
+
+function errorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message
+    if (typeof message === 'string' && message) return message
+  }
+  return fallback
+}
+
+async function initializeWorkbench() {
+  const [taskResult, employeeResult] = await Promise.allSettled([
+    taskStore.loadTasks({ scope: 'my', limit: 100 }),
+    fetchAvailableEmployees(),
+  ])
+  if (taskResult.status === 'rejected') {
+    MessagePlugin.error(errorMessage(taskResult.reason, '任务列表加载失败'))
+  }
+  if (employeeResult.status === 'fulfilled') {
+    employees.value = employeeResult.value.data
+  } else {
+    MessagePlugin.error(errorMessage(employeeResult.reason, '数字员工加载失败'))
+  }
+
   if (route.query.employeeId) {
     const empId = route.query.employeeId as string
-    const empName = (route.query.employeeName as string) || '专业数字员工'
-    selectedEmployeeId.value = empId
-    taskPrompt.value = `请求【${empName}】协助处理：`
-    MessagePlugin.info(`已为您调起数字员工【${empName}】，请输入具体任务需求！`)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    const employee = employees.value.find((item) => item.employeeId === empId)
+    if (employee) {
+      selectedEmployeeId.value = empId
+      taskPrompt.value = `请求【${employee.name}】协助处理：`
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  } else {
+    selectedEmployeeId.value = employees.value[0]?.employeeId
   }
+}
+
+onMounted(() => {
+  void initializeWorkbench()
 })
 
 const quickFillPrompt = (prompt: string) => {
   taskPrompt.value = prompt
-  selectedEmployeeId.value = 'emp-preset-quote'
-}
-
-const handleUploadAttach = () => {
-  MessagePlugin.success('已自动关联参考 SOP 与规范资料文档')
+  if (!selectedEmployeeId.value) selectedEmployeeId.value = employees.value[0]?.employeeId
 }
 
 const handleCreateTask = async () => {
   if (!taskPrompt.value.trim()) return
-  submitting.value = true
 
-  const empId = selectedEmployeeId.value || 'emp-preset-quote'
+  const empId = selectedEmployeeId.value
+  if (!empId) {
+    MessagePlugin.warning('当前 Workspace 没有可用的已发布数字员工')
+    return
+  }
+  submitting.value = true
   const promptText = taskPrompt.value
 
   try {
     const createdTask = await taskStore.createTask({
-      workspaceId: authStore.tenant?.id || 'ws-default',
       employeeId: empId,
       title: promptText,
-      creatorUserId: authStore.user?.id || 'user-default',
     })
-    MessagePlugin.success('真实任务下发成功！已进入待人工审批状态。')
+    MessagePlugin.success('任务已下发，后台执行已启动')
     taskPrompt.value = ''
     router.push(`/platform/tasks/${createdTask.taskId}`)
-  } catch {
-    MessagePlugin.error('任务下发异常，请重试')
+  } catch (error: unknown) {
+    MessagePlugin.error(errorMessage(error, '任务下发失败，请重试'))
   } finally {
     submitting.value = false
   }
@@ -487,22 +456,11 @@ const openTaskDetail = (taskId: string, tab?: string) => {
 }
 
 const previewArtifact = (art: any) => {
-  currentPreviewArtifact.value = art
-  previewVisible.value = true
-}
-
-const handleDownload = () => {
-  MessagePlugin.success(`开始下载产物【${currentPreviewArtifact.value?.name || '报价单'}】`)
-  previewVisible.value = false
+  window.open(art.url, '_blank', 'noopener,noreferrer')
 }
 
 const getEmployeeName = (id: string) => {
-  const map: Record<string, string> = {
-    'emp-preset-quote': '售前评估与报价专家',
-    'emp-preset-market': '竞品与市场情报分析师',
-    'emp-preset-hr': 'HR 招聘与 Onboarding 助手',
-  }
-  return map[id] || id
+  return employees.value.find((employee) => employee.employeeId === id)?.name || id
 }
 
 const getStatusLabel = (status: string) => {

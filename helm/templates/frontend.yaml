@@ -46,6 +46,12 @@ spec:
               value: {{ .Values.frontend.appHost | default "app" | quote }}
             - name: APP_PORT
               value: {{ .Values.frontend.appPort | default .Values.app.service.port | quote }}
+            - name: EMPLOYEE_OS_HOST
+              value: {{ .Values.frontend.employeeOsHost | quote }}
+            - name: EMPLOYEE_OS_PORT
+              value: {{ .Values.frontend.employeeOsPort | quote }}
+            - name: EMPLOYEE_OS_SCHEME
+              value: {{ .Values.frontend.employeeOsScheme | default "http" | quote }}
           ports:
             - containerPort: 80
               name: http

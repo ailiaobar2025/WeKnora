@@ -51,6 +51,8 @@ const DEV_PROXY_TARGET =
   process.env.VITE_DEV_PROXY_TARGET ||
   process.env.FRONTEND_BACKEND_URL ||
   'http://localhost:8080'
+const EMPLOYEE_OS_PROXY_TARGET =
+  process.env.VITE_EMPLOYEE_OS_PROXY_TARGET || 'http://localhost:3000'
 
 function resolveVueOfficePptxEntry(): string {
   try {
@@ -132,6 +134,12 @@ export default defineConfig({
     host: true,
     // 代理配置，用于开发环境
     proxy: {
+      '/employee-os': {
+        target: EMPLOYEE_OS_PROXY_TARGET,
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/employee-os/, ''),
+      },
       '/api': {
         target: DEV_PROXY_TARGET,
         changeOrigin: true,
@@ -151,6 +159,12 @@ export default defineConfig({
     port: 4173,
     host: true,
     proxy: {
+      '/employee-os': {
+        target: EMPLOYEE_OS_PROXY_TARGET,
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/employee-os/, ''),
+      },
       '/api': {
         target: DEV_PROXY_TARGET,
         changeOrigin: true,

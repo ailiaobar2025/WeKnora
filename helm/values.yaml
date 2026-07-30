@@ -141,6 +141,9 @@ app:
 # Frontend (Web UI)
 # -----------------------------------------------------------------------------
 frontend:
+  employeeOsHost: host.docker.internal
+  employeeOsPort: 3000
+  employeeOsScheme: http
   # -- Enable the frontend component
   enabled: true
 
