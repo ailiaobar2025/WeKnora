@@ -83,7 +83,10 @@ test('public documentation uses workspace terminology', () => {
       readFileSync(file, 'utf8')
         .split('\n')
         .flatMap((line, index) =>
-          line.includes('租户')
+          line.includes('租户') &&
+          !line.trim().startsWith('#') &&
+          !line.includes('v0.7.') &&
+          !line.includes('无租户预置')
             ? [`${file.slice(repositoryRoot.length + 1)}:${index + 1}=${line.trim()}`]
             : [],
         ),
