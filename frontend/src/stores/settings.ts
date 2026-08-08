@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { nextTick } from "vue";
 import { BUILTIN_QUICK_ANSWER_ID, BUILTIN_SMART_REASONING_ID } from "@/api/agent";
 import { getApiBaseUrl } from "@/utils/api-base";
-import { isAgentStreamAgentId } from "@/utils/agent-mode";
+import { isAgentStreamAgentId, type AgentRuntimeMode } from "@/utils/agent-mode";
 import { loadAndReconcileSettings } from "@/stores/settingsStorage";
 
 // 定义设置接口
@@ -447,19 +447,20 @@ export const useSettingsStore = defineStore("settings", {
     },
     
     // 选择智能体（sourceTenantId 仅在使用共享智能体时传入）
-    selectAgent(agentId: string, sourceTenantId?: string | null) {
+    selectAgent(agentId: string, sourceTenantId?: string | null, agentMode?: AgentRuntimeMode) {
       this.settings.selectedAgentId = agentId;
       this.settings.selectedAgentSourceTenantId = (sourceTenantId != null && sourceTenantId !== "") ? sourceTenantId : null;
       // 智能体配置只决定是否具备网络搜索能力，不替用户决定是否在本轮使用。
       // 每次选择智能体都默认关闭，之后只能由用户从输入框主动开启。
       this.settings.webSearchEnabled = false;
       // 根据智能体类型自动切换 Agent 模式
-      if (agentId === BUILTIN_QUICK_ANSWER_ID) {
+      if (agentMode) {
+        this.settings.isAgentEnabled = agentMode === "smart-reasoning";
+      } else if (agentId === BUILTIN_QUICK_ANSWER_ID) {
         this.settings.isAgentEnabled = false;
       } else if (agentId === BUILTIN_SMART_REASONING_ID) {
         this.settings.isAgentEnabled = true;
       }
-      // 自定义智能体需要根据其配置来决定
       
       // 切换智能体时重置知识库和文件选择状态
       // 因为不同智能体关联的知识库不同，需要清空用户之前的选择

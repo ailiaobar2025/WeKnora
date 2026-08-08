@@ -1,5 +1,5 @@
 <template>
-  <t-loading :loading="loading">
+  <t-loading :loading="loading" class="task-detail-loading-wrapper">
   <div v-if="task" class="task-detail-container">
     <!-- 顶部 Task 头部导航与操作 -->
     <div class="detail-header-card">
@@ -96,10 +96,45 @@
 
       <!-- 2. 沟通记录页签 -->
       <div v-if="activeTab === 'conversation'" class="tab-content chat-panel">
-        <div class="empty-state">
-          <t-icon name="chat" size="36px" style="color: #999;" />
-          <p>当前任务接口暂未返回沟通消息</p>
-        </div>
+        <t-loading :loading="loadingMessages">
+          <div v-if="chatMessages && chatMessages.length > 0" class="conversation-history-list">
+            <div
+              v-for="msg in chatMessages"
+              :key="msg.id || msg.created_at"
+              class="chat-message-item"
+              :class="`role-${msg.role}`"
+            >
+              <div class="msg-avatar">
+                <t-avatar v-if="msg.role === 'user'" shape="circle" size="medium">用</t-avatar>
+                <t-avatar v-else shape="circle" size="medium" style="background-color: var(--td-brand-color); color: #fff;">
+                  🤖
+                </t-avatar>
+              </div>
+              <div class="msg-content-box">
+                <div class="msg-header-info">
+                  <span class="msg-sender-name">{{ msg.role === 'user' ? '发起人' : getEmployeeName(task.employeeId) }}</span>
+                  <span class="msg-time">{{ formatDate(msg.created_at || msg.createdAt) }}</span>
+                </div>
+                <div class="msg-body markdown-body" v-html="renderMsgContent(msg.content)"></div>
+              </div>
+            </div>
+
+            <div class="conversation-actions-bar">
+              <t-button theme="primary" variant="outline" size="medium" @click="goToChatSession">
+                <template #icon><t-icon name="chat" /></template>
+                💬 进入聊天窗口与数字员工继续沟通
+              </t-button>
+            </div>
+          </div>
+
+          <div v-else class="empty-state">
+            <t-icon name="chat" size="36px" style="color: #999;" />
+            <p>暂无沟通记录，或该任务尚未产生交互对话</p>
+            <t-button v-if="task.conversationId" theme="primary" variant="text" @click="goToChatSession">
+              跳转至关联会话页面
+            </t-button>
+          </div>
+        </t-loading>
       </div>
 
       <!-- 3. 执行时间线与审批页签 -->
@@ -173,12 +208,8 @@
 
       <!-- 4. 交付成果页签 -->
       <div v-if="activeTab === 'artifacts'" class="tab-content artifacts-panel">
-        <div v-if="!task.outputArtifacts || task.outputArtifacts.length === 0" class="empty-state">
-          <t-icon name="file-unknown" size="36px" style="color: #999;" />
-          <p>{{ task.status === 'SUCCESS' ? '任务已完成，但后台未归档成果' : '后台尚未归档成果' }}</p>
-        </div>
-
-        <div v-else class="artifacts-grid">
+        <!-- 优先分发：显示独占二进制成果库或已归档成果 -->
+        <div v-if="task.outputArtifacts && task.outputArtifacts.length > 0" class="artifacts-grid">
           <div v-for="art in task.outputArtifacts" :key="art.artifactId" class="artifact-card">
             <div class="art-card-top">
               <t-icon :name="getArtifactIcon(art.type)" size="36px" style="color: var(--td-brand-color);" />
@@ -195,6 +226,38 @@
             </div>
           </div>
         </div>
+
+        <!-- 兜底与强化分发：自动从 AI 员工的终态回复提取并生成成果报告产物 -->
+        <div v-else-if="latestAssistantSummary" class="executive-artifact-wrapper">
+          <div class="executive-artifact-card">
+            <div class="card-header-bar">
+              <div class="title-meta">
+                <t-icon name="file-markdown" size="24px" style="color: var(--td-brand-color);" />
+                <div>
+                  <h3 class="artifact-heading">【成果交付报告】{{ task.title }}</h3>
+                  <span class="artifact-sub">负责员工：{{ getEmployeeName(task.employeeId) }} &nbsp;·&nbsp; 生成时间：{{ formatDate(task.completedAt || task.createdAt) }}</span>
+                </div>
+              </div>
+              <div class="card-action-btns">
+                <t-button theme="default" variant="outline" size="small" @click="copyArtifactText">
+                  <template #icon><t-icon name="copy" /></template>
+                  复制全文
+                </t-button>
+                <t-button theme="primary" size="small" @click="downloadArtifactMd">
+                  <template #icon><t-icon name="download" /></template>
+                  📄 下载交付文件 (.md)
+                </t-button>
+              </div>
+            </div>
+
+            <div class="card-body-content markdown-body" v-html="renderMsgContent(latestAssistantSummary)"></div>
+          </div>
+        </div>
+
+        <div v-else class="empty-state">
+          <t-icon name="file-unknown" size="36px" style="color: #999;" />
+          <p>{{ task.status === 'SUCCESS' ? '任务已完成，但后台尚未生成文字交付成果' : '后台尚未归档成果' }}</p>
+        </div>
       </div>
     </div>
 
@@ -208,11 +271,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { fetchAvailableEmployees } from '@/api/employeeOs'
 import { useTaskStore } from '@/stores/task'
+import { getMessageList } from '@/api/chat/index'
+import { renderChatMarkdown } from '@/utils/chatMarkdownRenderer'
 
 const route = useRoute()
 const router = useRouter()
@@ -224,6 +289,9 @@ const reviewing = ref(false)
 const loadError = ref('')
 const employeeNames = ref<Record<string, string>>({})
 
+const chatMessages = ref<any[]>([])
+const loadingMessages = ref(false)
+
 const taskId = computed(() => route.params.taskId as string)
 const task = computed(() => taskStore.getTaskById(taskId.value))
 const loading = computed(() => taskStore.loading)
@@ -234,6 +302,21 @@ function errorMessage(error: unknown, fallback: string): string {
     if (typeof message === 'string' && message) return message
   }
   return fallback
+}
+
+const loadSessionMessages = async (sessionId: string) => {
+  if (!sessionId || loadingMessages.value) return
+  loadingMessages.value = true
+  try {
+    const res: any = await getMessageList({ session_id: sessionId, limit: 100, created_at: '' })
+    if (res && res.data) {
+      chatMessages.value = Array.isArray(res.data) ? res.data : []
+    }
+  } catch (err) {
+    console.error('Failed to load session messages for task:', err)
+  } finally {
+    loadingMessages.value = false
+  }
 }
 
 onMounted(async () => {
@@ -249,7 +332,74 @@ onMounted(async () => {
       employeeResult.value.data.map((employee) => [employee.employeeId, employee.name]),
     )
   }
+
+  if (task.value?.conversationId) {
+    void loadSessionMessages(task.value.conversationId)
+  }
 })
+
+watch(
+  () => task.value?.conversationId,
+  (newConvId) => {
+    if (newConvId) void loadSessionMessages(newConvId)
+  },
+)
+
+watch(activeTab, (newTab) => {
+  if ((newTab === 'conversation' || newTab === 'artifacts') && task.value?.conversationId && chatMessages.value.length === 0) {
+    void loadSessionMessages(task.value.conversationId)
+  }
+})
+
+const latestAssistantSummary = computed(() => {
+  if (!chatMessages.value || chatMessages.value.length === 0) return ''
+  const assistantMsgs = chatMessages.value.filter((m) => m.role === 'assistant' || m.role === 'bot')
+  if (assistantMsgs.length === 0) return ''
+  const lastMsg = assistantMsgs[assistantMsgs.length - 1]
+  return lastMsg.content || ''
+})
+
+const renderMsgContent = (rawText: string) => {
+  if (!rawText) return ''
+  return renderChatMarkdown(rawText, { streaming: false })
+}
+
+const goToChatSession = () => {
+  if (task.value?.conversationId) {
+    router.push(`/platform/chat/${task.value.conversationId}`)
+  }
+}
+
+const downloadArtifactMd = () => {
+  if (!latestAssistantSummary.value) {
+    return MessagePlugin.warning('当前暂无可导出的交付成果')
+  }
+  const title = task.value?.title || '任务交付成果报告'
+  const dateStr = new Date().toISOString().slice(0, 10)
+  const filename = `${title}_${dateStr}.md`
+  const blob = new Blob([`# ${title}\n\n> 负责员工：${getEmployeeName(task.value?.employeeId || '')}\n> 交付时间：${new Date().toLocaleString()}\n\n---\n\n${latestAssistantSummary.value}`], {
+    type: 'text/markdown;charset=utf-8',
+  })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+  MessagePlugin.success(`交付报告已成功导出为文件：${filename}`)
+}
+
+const copyArtifactText = async () => {
+  if (!latestAssistantSummary.value) return
+  try {
+    await navigator.clipboard.writeText(latestAssistantSummary.value)
+    MessagePlugin.success('成果内容已复制到剪贴板')
+  } catch (err) {
+    MessagePlugin.error('复制失败，请手动选择复制')
+  }
+}
 
 const goBack = () => {
   router.push('/platform/tasks')
@@ -323,8 +473,20 @@ const formatDate = (isoStr: string | null) => {
 </script>
 
 <style scoped lang="less">
+.task-detail-loading-wrapper {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .task-detail-container {
-  padding: 24px;
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  padding: 24px 24px 60px 24px;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -598,6 +760,126 @@ const formatDate = (isoStr: string | null) => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* 沟通记录样式 */
+.conversation-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.chat-message-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+
+  &.role-user {
+    flex-direction: row-reverse;
+
+    .msg-content-box {
+      background-color: #f0f7f4;
+      border: 1px solid #d0e8dd;
+      border-radius: 12px 2px 12px 12px;
+    }
+
+    .msg-header-info {
+      text-align: right;
+    }
+  }
+
+  &.role-assistant, &.role-bot {
+    .msg-content-box {
+      background-color: var(--td-bg-color-container);
+      border: 1px solid var(--td-component-border);
+      border-radius: 2px 12px 12px 12px;
+    }
+  }
+
+  .msg-content-box {
+    padding: 12px 16px;
+    max-width: 85%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .msg-header-info {
+    font-size: 12px;
+    color: var(--td-text-color-placeholder);
+    margin-bottom: 6px;
+
+    .msg-sender-name {
+      font-weight: 600;
+      color: var(--td-text-color-secondary);
+      margin-right: 8px;
+    }
+  }
+
+  .msg-body {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--td-text-color-primary);
+    word-break: break-word;
+  }
+}
+
+.conversation-actions-bar {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--td-component-border);
+}
+
+/* 交付成果报告卡片 */
+.executive-artifact-wrapper {
+  padding: 4px 0;
+}
+
+.executive-artifact-card {
+  background: var(--td-bg-color-container);
+  border: 1px solid var(--td-component-border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+
+  .card-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--td-component-border);
+
+    .title-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .artifact-heading {
+      margin: 0 0 4px 0;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--td-text-color-primary);
+    }
+
+    .artifact-sub {
+      font-size: 12px;
+      color: var(--td-text-color-secondary);
+    }
+
+    .card-action-btns {
+      display: flex;
+      gap: 10px;
+    }
+  }
+
+  .card-body-content {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--td-text-color-primary);
+  }
 }
 
 .empty-state {

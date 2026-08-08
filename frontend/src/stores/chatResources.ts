@@ -137,9 +137,11 @@ export const useChatResourcesStore = defineStore('chatResources', () => {
         ])
         const res = agentsRes as { data?: CustomAgent[]; disabled_own_agent_ids?: string[] }
         const data = res.data || []
-        agents.value = data
-        disabledOwnAgentIds.value = res.disabled_own_agent_ids || []
-        loadedAt.value.agents = Date.now()
+        if (agentsAllGen === gen) {
+          agents.value = data
+          disabledOwnAgentIds.value = res.disabled_own_agent_ids || []
+          loadedAt.value.agents = Date.now()
+        }
         return { data, disabled_own_agent_ids: res.disabled_own_agent_ids || [] }
       } finally {
         if (agentsAllGen === gen) agentsAllInflight = null
@@ -248,6 +250,7 @@ export const useChatResourcesStore = defineStore('chatResources', () => {
 
   function invalidate(...keys: ResourceKey[]) {
     if (keys.length === 0) {
+      agentsAllGen += 1
       loadedAt.value = {}
       rawKnowledgeBases.value = []
       agents.value = []
@@ -274,6 +277,7 @@ export const useChatResourcesStore = defineStore('chatResources', () => {
       invalidateKnowledgeBaseDetail()
     }
     if (keys.includes('agents')) {
+      agentsAllGen += 1
       agentsAllInflight = null
     }
   }

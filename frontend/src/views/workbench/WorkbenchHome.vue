@@ -67,16 +67,29 @@
               添加附件资料 (SOP / 需求文档)
             </t-button>
           </div>
-          <t-button
-            theme="primary"
-            size="medium"
-            :loading="submitting"
-            :disabled="!taskPrompt.trim() || !selectedEmployeeId"
-            @click="handleCreateTask"
-          >
-            <template #icon><t-icon name="send" /></template>
-            下发真实任务
-          </t-button>
+          <div class="button-group" style="display: flex; gap: 10px;">
+            <t-button
+              theme="primary"
+              size="medium"
+              :loading="communicating"
+              :disabled="!taskPrompt.trim() || !selectedEmployeeId"
+              @click="handleStartCommunication"
+            >
+              <template #icon><t-icon name="chat" /></template>
+              💬 与数字员工沟通确认
+            </t-button>
+            <t-button
+              theme="default"
+              variant="outline"
+              size="medium"
+              :loading="submitting"
+              :disabled="!taskPrompt.trim() || !selectedEmployeeId"
+              @click="handleCreateTask"
+            >
+              <template #icon><t-icon name="send" /></template>
+              ⚡ 一键直发任务
+            </t-button>
+          </div>
         </div>
       </div>
     </div>
@@ -297,14 +310,28 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useTaskStore } from '@/stores/task'
+import { useMenuStore } from '@/stores/menu'
+import { useSettingsStore } from '@/stores/settings'
+import { useChatResourcesStore } from '@/stores/chatResources'
 import { fetchAvailableEmployees, type BizEmployee } from '@/api/employeeOs'
+import { createSessions } from '@/api/chat/index'
+import { isAgentRuntimeMode } from '@/utils/agent-mode'
+import {
+  buildEmployeeChatEntry,
+  buildEmployeeChatSessionDescription,
+  buildEmployeeChatSessionTitle,
+} from '@/utils/employeeTaskWorkflow'
 
 const router = useRouter()
 const route = useRoute()
 const taskStore = useTaskStore()
+const menuStore = useMenuStore()
+const settingsStore = useSettingsStore()
+const chatResources = useChatResourcesStore()
 const taskPrompt = ref('')
 const selectedEmployeeId = ref<string | undefined>()
 const submitting = ref(false)
+const communicating = ref(false)
 const employees = ref<BizEmployee[]>([])
 
 const pendingCounts = computed(() => taskStore.pendingCounts)
@@ -405,6 +432,61 @@ onMounted(() => {
 const quickFillPrompt = (prompt: string) => {
   taskPrompt.value = prompt
   if (!selectedEmployeeId.value) selectedEmployeeId.value = employees.value[0]?.employeeId
+}
+
+const handleStartCommunication = async () => {
+  if (!taskPrompt.value.trim()) return
+
+  const empId = selectedEmployeeId.value
+  if (!empId) {
+    MessagePlugin.warning('当前 Workspace 没有可用的已发布数字员工')
+    return
+  }
+  communicating.value = true
+  const promptText = taskPrompt.value
+
+  try {
+    const employee = employees.value.find((e) => e.employeeId === empId)
+    if (!employee?.agentIdRef) throw new Error('所选数字员工已不可用，请刷新工作台后重试')
+    const agentId = employee.agentIdRef
+    const employeeName = employee.name
+    const sessionTitle = buildEmployeeChatSessionTitle(employeeName)
+
+    await chatResources.ensureAgents(true)
+    const agent = chatResources.agents.find((item) => item.id === agentId)
+    if (!agent) throw new Error('所选数字员工的专属智能体不存在，请重新安装后再试')
+    const agentMode = agent.config?.agent_mode
+    if (!isAgentRuntimeMode(agentMode)) {
+      throw new Error('所选数字员工的专属智能体运行模式无效，请重新安装后再试')
+    }
+
+    const res = await createSessions({
+      title: sessionTitle,
+      description: buildEmployeeChatSessionDescription(empId),
+    })
+
+    const sessionId = res.data.id
+    const chatEntry = buildEmployeeChatEntry({
+      sessionId,
+      employeeId: empId,
+      employeeName,
+      agentId,
+      agentMode,
+    })
+
+    settingsStore.selectAgent(agentId, null, agentMode)
+    menuStore.updataMenuChildren(chatEntry.menuItem)
+    menuStore.changeIsFirstSession(false)
+    menuStore.changeFirstQuery(promptText)
+
+    MessagePlugin.success(`已调起与【${employeeName}】的即时对话窗口`)
+    taskPrompt.value = ''
+    await router.push(chatEntry.route)
+  } catch (error: unknown) {
+    MessagePlugin.error(errorMessage(error, '发起沟通失败，请重试'))
+  } finally {
+    communicating.value = false
+  }
 }
 
 const handleCreateTask = async () => {

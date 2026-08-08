@@ -202,14 +202,17 @@ instance.interceptors.response.use(
           isRefreshing = false;
         }
       } else {
-        // 没有refresh token，直接跳转到登录页
+        // 没有refresh token，清空排队 Promise 并跳转登录页
+        const reloginErr = { message: t('error.pleaseRelogin') };
+        processQueue(reloginErr, null);
+
         localStorage.removeItem('weknora_token');
         localStorage.removeItem('weknora_user');
         localStorage.removeItem('weknora_tenant');
         
         redirectToLogin();
         
-        return Promise.reject({ message: t('error.pleaseRelogin') });
+        return Promise.reject(reloginErr);
       }
     }
     

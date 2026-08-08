@@ -61,7 +61,9 @@
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed var(--td-component-border);">
                 <span style="font-size: 11px; color: var(--td-success-color);">内置 SOP & 人工审批</span>
-                <t-button v-if="!isInstalled(preset.id)" size="small" theme="primary" @click="installPresetEmployee(preset)">
+                <t-button v-if="!isInstalled(preset.id)" size="small" theme="primary"
+                  :loading="installingPresetId === preset.id" :disabled="Boolean(installingPresetId)"
+                  @click="installPresetEmployee(preset)">
                   一键安装
                 </t-button>
                 <t-tag v-else theme="success" variant="light" size="medium" style="padding: 4px 10px; font-weight: 500;">
@@ -93,9 +95,15 @@
                 <p style="font-size: 12px; color: var(--td-text-color-secondary); margin: 6px 0 12px 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ emp.desc }}</p>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px dashed var(--td-component-border);">
-                <span style="font-size: 11px; color: var(--td-success-color); font-weight: 500;">● 在岗就绪</span>
-                <t-button size="small" theme="primary" @click="startTaskWithEmployee(emp)">
+                <span v-if="emp.ready" style="font-size: 11px; color: var(--td-success-color); font-weight: 500;">● 在岗就绪</span>
+                <span v-else style="font-size: 11px; color: var(--td-warning-color); font-weight: 500;">● 智能体待修复</span>
+                <t-button v-if="emp.ready" size="small" theme="primary" @click="startTaskWithEmployee(emp)">
                   下发任务
+                </t-button>
+                <t-button v-else-if="emp.repairPreset" size="small" theme="warning"
+                  :loading="installingPresetId === emp.repairPreset.id" :disabled="Boolean(installingPresetId)"
+                  @click="installPresetEmployee(emp.repairPreset)">
+                  修复安装
                 </t-button>
               </div>
             </div>
@@ -880,49 +888,123 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MessagePlugin, Icon as TIcon } from 'tdesign-vue-next'
 
+import {
+  createBizEmployee,
+  fetchAvailableEmployees,
+  updateBizEmployee,
+  type BizEmployee,
+} from '@/api/employeeOs'
+import {
+  BUILTIN_SMART_REASONING_ID,
+  createAgent,
+  deleteAgent,
+  getAgentById,
+  copyAgent,
+  type CustomAgent,
+} from '@/api/agent'
+import {
+  PRESET_MARKET_EMPLOYEES,
+  findPresetEmployee,
+  installPresetMarketEmployee,
+  isPresetEmployeeInstalled,
+  type PresetMarketEmployee,
+} from '@/utils/presetEmployeeAgent'
+
 const activeTabMode = ref<'installed' | 'market'>('installed')
+const realBackendEmployees = ref<BizEmployee[]>([])
+const installingPresetId = ref('')
 
-const presetMarketEmployees = ref([
-  {
-    id: 'preset-quote-expert',
-    name: '售前评估与报价专家',
-    dept: '售前与商业化部',
-    desc: '自动识别客户招标文件与需求清单，核算开发工作量与合规报价，生成标准 Excel 报价单并驱动主管审批。',
-  },
-  {
-    id: 'preset-market-analyst',
-    name: '竞品与市场情报分析师',
-    dept: '市场分析部',
-    desc: '全网抓取并对比竞争对手的产品版本迭代、定价策略与用户口碑，自动输出 PPT/PDF 简报。',
-  },
-  {
-    id: 'preset-hr-assistant',
-    name: 'HR 招聘与 Onboarding 助手',
-    dept: '人力资源部',
-    desc: '简历自动分类打分，生成面试提纲并自动跟进新员工入职手册与资产准备。',
-  },
-])
+const presetMarketEmployees = ref(PRESET_MARKET_EMPLOYEES)
 
-const installedPresetAgents = ref([
-  {
-    id: 'preset-quote-expert',
-    name: '售前评估与报价专家',
-    dept: '售前与商业化部',
-    desc: '自动识别客户招标文件与需求清单，核算开发工作量与合规报价，生成标准 Excel 报价单并驱动主管审批。',
-  },
-])
+const installedPresetAgents = computed(() => {
+  const result: Array<{
+    id: string
+    name: string
+    dept: string
+    desc: string
+    ready: boolean
+    repairPreset?: PresetMarketEmployee
+  }> = []
+  const availableAgents = chatResources.isFresh('agents') ? chatResources.agents : undefined
 
-const isInstalled = (id: string) => {
-  return installedPresetAgents.value.some((a) => a.id === id)
+  for (const emp of realBackendEmployees.value) {
+    const preset = presetMarketEmployees.value.find((p) => p.name === emp.name || p.id === emp.agentIdRef)
+    const needsPresetRepair = Boolean(
+      preset && !isPresetEmployeeInstalled(preset, [emp], availableAgents),
+    )
+    result.push({
+      id: emp.employeeId,
+      name: emp.name,
+      dept: preset?.dept || '已发布',
+      desc: emp.description || preset?.desc || '数字员工',
+      ready: !needsPresetRepair,
+      repairPreset: needsPresetRepair ? preset : undefined,
+    })
+  }
+
+  return result
+})
+
+const isInstalled = (presetId: string) => {
+  const preset = presetMarketEmployees.value.find((p) => p.id === presetId)
+  if (!preset) return false
+  const availableAgents = chatResources.isFresh('agents') ? chatResources.agents : undefined
+  return isPresetEmployeeInstalled(preset, realBackendEmployees.value, availableAgents)
 }
 
-const installPresetEmployee = (preset: any) => {
-  const exists = installedPresetAgents.value.some((a) => a.id === preset.id)
-  if (!exists) {
-    installedPresetAgents.value.push(preset)
+const loadBackendEmployees = async () => {
+  try {
+    const res = await fetchAvailableEmployees()
+    realBackendEmployees.value = res.data
+  } catch (err) {
+    console.error('加载已发布数字员工失败:', err)
   }
-  MessagePlugin.success(`已成功将【${preset.name}】安装到当前 Workspace！`)
-  activeTabMode.value = 'installed'
+}
+
+const errorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message
+    if (typeof message === 'string' && message.trim()) return message
+  }
+  return fallback
+}
+
+const installPresetEmployee = async (preset: PresetMarketEmployee) => {
+  if (installingPresetId.value) return
+  installingPresetId.value = preset.id
+  try {
+    const existingEmployee = findPresetEmployee(preset, realBackendEmployees.value)
+    const result = await installPresetMarketEmployee(preset, realBackendEmployees.value, {
+      getBaseAgent: async () => {
+        const response = await getAgentById(BUILTIN_SMART_REASONING_ID)
+        if (!response?.data) throw new Error('无法读取当前 Workspace 的智能推理配置')
+        return response.data
+      },
+      createAgent: async (payload) => {
+        const response = await createAgent(payload)
+        if (!response?.data) throw new Error('创建数字员工智能体失败')
+        return response.data
+      },
+      createEmployee: (payload) => createBizEmployee(payload),
+      updateEmployee: (employeeId, payload) => updateBizEmployee(employeeId, payload),
+      deleteAgent: async (agentId) => {
+        await deleteAgent(agentId)
+      },
+    })
+
+    chatResources.invalidate('agents')
+    await Promise.all([chatResources.ensureAgents(true), loadBackendEmployees()])
+    await fetchList(false)
+
+    const action = result.repaired || existingEmployee ? '修复' : '安装'
+    MessagePlugin.success(`已成功${action}【${preset.name}】，专属智能体已在当前 Workspace 就绪！`)
+    activeTabMode.value = 'installed'
+  } catch (err: unknown) {
+    MessagePlugin.error(errorMessage(err, '安装数字员工失败，请重试'))
+    console.error('安装数字员工失败:', err)
+  } finally {
+    installingPresetId.value = ''
+  }
 }
 
 const startTaskWithEmployee = (emp: any) => {
@@ -932,7 +1014,6 @@ const startTaskWithEmployee = (emp: any) => {
     query: { employeeId: emp.id, employeeName: emp.name }
   })
 }
-import { deleteAgent, copyAgent, type CustomAgent } from '@/api/agent'
 import { useChatResourcesStore } from '@/stores/chatResources'
 import { formatStringDate } from '@/utils/index'
 import { useI18n } from 'vue-i18n'
@@ -1330,6 +1411,7 @@ watch(creatorFilter, () => {
 
 onMounted(() => {
   fetchList()
+  void loadBackendEmployees()
   window.addEventListener('openAgentEditor', handleOpenAgentEditor as EventListener)
 })
 

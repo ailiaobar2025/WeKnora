@@ -76,6 +76,7 @@ export interface DashboardSummaryData {
 export interface CreateTaskPayload {
   employeeId: string
   title: string
+  conversationId?: string
   source?: string
 }
 
@@ -134,6 +135,29 @@ export function fetchTaskDetail(taskId: string) {
 export function fetchAvailableEmployees() {
   return get<{ data: BizEmployee[]; total: number; page: number; limit: number }>(
     `${EMPLOYEE_OS_API}/employees/available`
+  )
+}
+
+export function createBizEmployee(payload: {
+  name: string
+  description?: string
+  agentIdRef: string
+  status?: string
+}) {
+  return post<BizEmployee>(`${EMPLOYEE_OS_API}/employees`, payload)
+}
+
+export function updateBizEmployee(
+  employeeId: string,
+  payload: {
+    description?: string
+    agentIdRef?: string
+    status?: string
+  }
+) {
+  return patch<BizEmployee>(
+    `${EMPLOYEE_OS_API}/employees/${encodeURIComponent(employeeId)}`,
+    payload
   )
 }
 

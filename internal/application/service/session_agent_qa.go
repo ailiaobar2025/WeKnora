@@ -15,6 +15,16 @@ import (
 	"github.com/Tencent/WeKnora/internal/types"
 )
 
+// [EmployeeOS] runtimeAgentRequiresRerankModel 运行时 Rerank 校验：只有本轮解析后
+// 的有效知识范围（KB/文档/Tag）非空时，才要求 Agent 配置 Rerank 模型。
+// 空知识范围跳过校验，避免"一键直发任务"被强制要求配置无关的 Rerank 模型。
+// 升级上游 WeKnora 时请保留此函数及 AgentQA 中对它的调用。
+// runtimeAgentRequiresRerankModel reports whether this request can invoke
+// knowledge_search against the effective knowledge scope resolved for the turn.
+func runtimeAgentRequiresRerankModel(customAgent *types.CustomAgent, agentConfig *types.AgentConfig) bool {
+	return agentRequiresRerankModel(customAgent) && agentHasKnowledgeScope(agentConfig)
+}
+
 // AgentQA performs agent-based question answering with conversation history and streaming support
 // customAgent is optional - if provided, uses custom agent configuration instead of tenant defaults
 // summaryModelID is optional - if provided, overrides the model from customAgent config
@@ -89,11 +99,13 @@ func (s *sessionService) AgentQA(
 		return fmt.Errorf("failed to get chat model: %w", err)
 	}
 
-	// Get rerank model from custom agent config only when knowledge_search can
-	// actually run. A disabled KB scope makes all KB tools ineffective, so it
-	// must not force users to configure an otherwise-unused rerank model.
+	// [EmployeeOS] 使用 runtimeAgentRequiresRerankModel 替代原来的 agentRequiresRerankModel，
+	// 追加本轮有效知识范围判定，避免空知识范围强制要求 Rerank 模型。
+	// 升级上游 WeKnora 时请保留此变更。
+	// Get the rerank model only when knowledge_search is enabled and this turn's
+	// resolved runtime scope contains an effective knowledge target.
 	var rerankModel rerank.Reranker
-	if agentRequiresRerankModel(req.CustomAgent) {
+	if runtimeAgentRequiresRerankModel(req.CustomAgent, agentConfig) {
 		// Rerank model is resolved purely from the agent config now.
 		// We used to fall back to ConversationConfig.RerankModelID at
 		// the tenant level, but that path encouraged "leave rerank
@@ -102,7 +114,7 @@ func (s *sessionService) AgentQA(
 		// agent settings. Forcing the agent to declare its own rerank
 		// model puts the configuration where the user actually edits
 		// the agent. If a Wiki-only agent doesn't need reranking,
-		// agentRequiresRerankModel() below already lets it pass.
+		// runtimeAgentRequiresRerankModel() above already lets it pass.
 		rerankModelID := req.CustomAgent.Config.RerankModelID
 		if rerankModelID == "" {
 			logger.Warnf(ctx, "No rerank model configured for custom agent %s, but knowledge_search tool is enabled", req.CustomAgent.ID)

@@ -146,10 +146,16 @@ func (s *customAgentService) GetAgentByID(ctx context.Context, id string) (*type
 		if err == nil {
 			// Found in database, return with customized config
 			agent.EnsureDefaults()
+			// [EmployeeOS] 旧租户兼容：智能推理 Agent 执行模型为空时继承快速问答模型配置。
+			// 见 .trellis/tasks/08-02-fix-chat-to-background-task-flow/prd.md R4（旧租户兼容）。
+			// 升级上游 WeKnora 时请保留此调用，否则旧租户数字员工任务将因模型缺失而报错。
+			s.applyLegacyBuiltinExecutionModelFallback(ctx, agent, tenantID)
 			return agent, nil
 		}
 		// Not in database, return default built-in agent from registry (i18n-aware)
 		if builtinAgent := types.GetBuiltinAgentWithContext(ctx, id, tenantID); builtinAgent != nil {
+			// [EmployeeOS] 同上：内存中的内置 Agent 同样需要补齐执行模型。
+			s.applyLegacyBuiltinExecutionModelFallback(ctx, builtinAgent, tenantID)
 			return builtinAgent, nil
 		}
 	}
@@ -240,8 +246,66 @@ func (s *customAgentService) ListAgents(ctx context.Context) ([]*types.CustomAge
 			result = append(result, agent)
 		}
 	}
+	inheritLegacyBuiltinExecutionModels(result)
 
 	return result, nil
+}
+
+// [EmployeeOS] inheritLegacyBuiltinExecutionModels 旧租户兼容：补齐智能推理 Agent 缺失的执行模型引用。
+// 背景：早期租户迁移时，智能推理 Agent 的 ModelID/RerankModelID 可能为空，
+// 实际配置仅保存在快速问答 Agent 上。本函数仅补齐缺失字段，不覆盖显式配置。
+// 升级上游 WeKnora 时如需移除，请先确认所有历史租户的智能推理 Agent 模型字段均已显式配置。
+// inheritLegacyBuiltinExecutionModels restores the model inheritance used when
+// the two original built-in agents were first migrated from tenant settings.
+// It only fills missing references; an explicitly configured smart-reasoning
+// model always wins and the agent keeps its own mode, prompts, and tools.
+func inheritLegacyBuiltinExecutionModels(agents []*types.CustomAgent) {
+	var quickAnswer, smartReasoning *types.CustomAgent
+	for _, agent := range agents {
+		if agent == nil {
+			continue
+		}
+		switch agent.ID {
+		case types.BuiltinQuickAnswerID:
+			quickAnswer = agent
+		case types.BuiltinSmartReasoningID:
+			smartReasoning = agent
+		}
+	}
+	if quickAnswer == nil || smartReasoning == nil {
+		return
+	}
+
+	if strings.TrimSpace(smartReasoning.Config.ModelID) == "" {
+		smartReasoning.Config.ModelID = strings.TrimSpace(quickAnswer.Config.ModelID)
+	}
+	if strings.TrimSpace(smartReasoning.Config.RerankModelID) == "" {
+		smartReasoning.Config.RerankModelID = strings.TrimSpace(quickAnswer.Config.RerankModelID)
+	}
+}
+
+// [EmployeeOS] applyLegacyBuiltinExecutionModelFallback 旧租户兼容：按需补齐单个智能推理 Agent 的执行模型。
+// 仅在 Agent 已经是 builtin-smart-reasoning 且模型引用缺失时从快速问答继承。
+// 升级上游 WeKnora 时请保留此函数及其所有调用点。
+func (s *customAgentService) applyLegacyBuiltinExecutionModelFallback(
+	ctx context.Context,
+	agent *types.CustomAgent,
+	tenantID uint64,
+) {
+	if agent == nil || agent.ID != types.BuiltinSmartReasoningID {
+		return
+	}
+	if strings.TrimSpace(agent.Config.ModelID) != "" &&
+		strings.TrimSpace(agent.Config.RerankModelID) != "" {
+		return
+	}
+
+	quickAnswer, err := s.repo.GetAgentByID(ctx, types.BuiltinQuickAnswerID, tenantID)
+	if err != nil {
+		return
+	}
+	quickAnswer.EnsureDefaults()
+	inheritLegacyBuiltinExecutionModels([]*types.CustomAgent{quickAnswer, agent})
 }
 
 // UpdateAgent updates an agent's information

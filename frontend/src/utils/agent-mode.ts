@@ -1,7 +1,14 @@
 import {
   BUILTIN_QUICK_ANSWER_ID,
   BUILTIN_SMART_REASONING_ID,
+  type CustomAgentConfig,
 } from '@/api/agent'
+
+export type AgentRuntimeMode = NonNullable<CustomAgentConfig['agent_mode']>
+
+export function isAgentRuntimeMode(value: unknown): value is AgentRuntimeMode {
+  return value === 'quick-answer' || value === 'smart-reasoning'
+}
 
 /** Whether the selected agent id is the builtin quick-answer (RAG) mode. */
 export function isQuickAnswerAgentId(agentId: string | null | undefined): boolean {

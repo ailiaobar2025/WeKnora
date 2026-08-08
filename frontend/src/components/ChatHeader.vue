@@ -26,6 +26,18 @@
       <t-icon v-if="session?.is_pinned" name="pin" size="12px" class="chat-header__pin" />
       <span class="chat-header__title-text">{{ displayTitle }}</span>
     </h1>
+    <t-button
+      v-if="session && employeeId && !titleEditing"
+      size="small"
+      theme="primary"
+      variant="outline"
+      :loading="convertingToTask"
+      style="margin-left: auto; margin-right: 12px;"
+      @click="handleConvertToTask"
+    >
+      <template #icon><t-icon name="task" /></template>
+      💼 转为后台任务
+    </t-button>
     <t-popup
       v-if="!titleEditing"
       v-model:visible="menuVisible"
@@ -115,9 +127,12 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
+import { useTaskStore } from '@/stores/task'
 import { getMessageList } from '@/api/chat'
+import { buildTaskConversionPayload } from '@/utils/employeeTaskWorkflow'
 import {
   clearSession,
   removeSession,
@@ -139,8 +154,37 @@ type MenuMode = 'menu' | 'clear' | 'delete'
 
 const props = defineProps<{
   session: ChatHeaderSession | null
+  employeeId?: string
   hasReferencesPanel?: boolean
 }>()
+
+const router = useRouter()
+const taskStore = useTaskStore()
+const convertingToTask = ref(false)
+
+const handleConvertToTask = async () => {
+  if (!props.session?.id || !props.employeeId) return
+  convertingToTask.value = true
+
+  try {
+    const createdTask = await taskStore.createTask(buildTaskConversionPayload({
+      employeeId: props.employeeId,
+      conversationId: props.session.id,
+      title: props.session.title,
+    }))
+
+    MessagePlugin.success('已将当前沟通正式下发为后台异步任务！')
+    await router.push(`/platform/tasks/${createdTask.taskId}`)
+  } catch (error: unknown) {
+    const message = error && typeof error === 'object' && 'message' in error
+      ? String(error.message)
+      : '转为后台异步任务失败，请重试'
+    MessagePlugin.error(message)
+    console.error(error)
+  } finally {
+    convertingToTask.value = false
+  }
+}
 
 const { t } = useI18n()
 const busyAction = ref('')

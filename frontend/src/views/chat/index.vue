@@ -4,7 +4,8 @@
         'is-sidebar-collapsed': uiStore.sidebarCollapsed,
         'has-references-panel': referencesDrawerVisible,
     }">
-        <ChatHeader v-if="!embeddedMode" :session="currentSession" :has-references-panel="referencesDrawerVisible" />
+        <ChatHeader v-if="!embeddedMode" :session="currentSession" :employee-id="employeeIdFromQuery"
+            :has-references-panel="referencesDrawerVisible" />
         <div ref="scrollContainer" class="chat_scroll_box" @scroll="handleScroll">
             <div class="msg_list" :class="{ 'is-embedded': embeddedMode }">
                 <!-- 消息列表骨架屏 -->
@@ -148,6 +149,8 @@ import ChatReferencesDrawer from '@/components/ChatReferencesDrawer.vue';
 import ChatAttachmentPreviewDrawer from '@/components/ChatAttachmentPreviewDrawer.vue';
 import FollowUpSuggestions from '@/components/chat/FollowUpSuggestions.vue';
 import ChatHeader from '@/components/ChatHeader.vue';
+import { parseEmployeeIdFromSessionDescription } from '@/utils/employeeTaskWorkflow';
+import { isAgentRuntimeMode } from '@/utils/agent-mode';
 import {
     notifySessionMutation,
     SESSION_MUTATION_EVENT,
@@ -215,6 +218,11 @@ const attachStreamDebugToMessage = (message) => {
 const route = useRoute();
 const session_id = ref(props.session_id || route.params.chatid);
 const currentSession = ref(null);
+const employeeIdFromQuery = computed(() => (
+    typeof route.query.employeeId === 'string'
+        ? route.query.employeeId
+        : parseEmployeeIdFromSessionDescription(currentSession.value?.description)
+));
 
 // 拉 session 详情，并按其 last_request_state 把输入栏状态恢复到当时的发起态。
 // 嵌入式（embeddedMode）由宿主页面注入 agent/KB，所以跳过整套恢复逻辑，
@@ -943,10 +951,13 @@ onBeforeMount(async () => {
     // 若从智能体列表点击共享智能体进入，URL 带 agent_id 与 source_tenant_id，同步到 store
     const agentIdFromQuery = props.agentId || (route.query.agent_id && String(route.query.agent_id));
     const sourceTenantIdFromQuery = route.query.source_tenant_id && String(route.query.source_tenant_id);
+    const agentModeFromQuery = isAgentRuntimeMode(route.query.agent_mode)
+        ? route.query.agent_mode
+        : undefined;
     if (agentIdFromQuery && sourceTenantIdFromQuery) {
-        useSettingsStoreInstance.selectAgent(agentIdFromQuery, sourceTenantIdFromQuery);
+        useSettingsStoreInstance.selectAgent(agentIdFromQuery, sourceTenantIdFromQuery, agentModeFromQuery);
     } else if (agentIdFromQuery) {
-        useSettingsStoreInstance.selectAgent(agentIdFromQuery, null);
+        useSettingsStoreInstance.selectAgent(agentIdFromQuery, null, agentModeFromQuery);
     }
 
     if (props.kbIds && props.kbIds.length > 0) {

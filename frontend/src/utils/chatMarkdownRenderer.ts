@@ -32,9 +32,9 @@ export type ChatMarkdownRendererOptions = {
 }
 
 export type RenderChatMarkdownOptions = {
-  renderer: Renderer
-  escapeMarkdown: (markdown: string) => string
-  sanitizeHtml: (html: string) => string
+  renderer?: Renderer
+  escapeMarkdown?: (markdown: string) => string
+  sanitizeHtml?: (html: string) => string
   /** The source is still growing and may end in ambiguous partial Markdown. */
   streaming?: boolean
   collapseStandaloneCitations?: boolean
@@ -484,8 +484,10 @@ export function renderChatMarkdown(rawMarkdown: unknown, options: RenderChatMark
   // agent sanitizers (e.g. UUID stripping) cannot damage chunk_id attributes.
   const { content: markdownWithPlaceholders, htmlSnippets } =
     extractCitationHtmlPlaceholders(flankingSafeMarkdown, options.knowledgeReferences)
-  const escapedMarkdown = options.escapeMarkdown(markdownWithPlaceholders)
-  const html = marked.parse(markdownWithPlaceholders, {
+  const escapeFn = options.escapeMarkdown || ((m: string) => m)
+  const sanitizeFn = options.sanitizeHtml || ((h: string) => h)
+  const escapedMarkdown = escapeFn(markdownWithPlaceholders)
+  const html = marked.parse(escapedMarkdown, {
     renderer: options.renderer,
     breaks: true,
     async: false,
@@ -496,7 +498,7 @@ export function renderChatMarkdown(rawMarkdown: unknown, options: RenderChatMark
     : collapseStandaloneCitationParagraphs(restoredHtml)
   const tableWrappedHtml = wrapChatMarkdownTables(citationHtml)
   const strongTitleHtml = markStandaloneStrongParagraphs(tableWrappedHtml)
-  const sanitized = options.sanitizeHtml(strongTitleHtml)
+  const sanitized = sanitizeFn(strongTitleHtml)
   const withMermaid = options.injectCachedMermaidSvg
     ? options.injectCachedMermaidSvg(sanitized, options.cachedMermaidSvgHtml)
     : sanitized

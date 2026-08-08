@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { MessagePlugin } from 'tdesign-vue-next';
 import { useI18n } from 'vue-i18n';
 import { MAX_FILE_SIZE_MB } from '@/utils';
@@ -133,32 +133,59 @@ const addFiles = async (files: File[]) => {
 const emitFiles = () => emit('update:files', [...attachments.value]);
 
 const uploadAttachment = async (attachment: AttachmentFile) => {
-  if (!props.sessionId) return;
+  if (!props.sessionId) {
+    attachment.status = 'local';
+    emitFiles();
+    return;
+  }
   try {
-    const response = await uploadTemporaryAttachment(
+    attachment.status = 'uploading';
+    attachment.progress = 10;
+    attachment.error = undefined;
+    emitFiles();
+
+    console.log('[AttachmentUpload] starting upload for file:', attachment.name, 'sessionId:', props.sessionId);
+
+    const uploadPromise = uploadTemporaryAttachment(
       props.sessionId,
       attachment.file,
       props.agentId,
       'auto',
       (progress) => {
-        attachment.progress = progress;
+        attachment.progress = Math.max(progress, 10);
         emitFiles();
       },
     );
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('文件上传超时，请检查网络或重新选择')), 15000);
+    });
+
+    const response = await Promise.race([uploadPromise, timeoutPromise]);
+
+    console.log('[AttachmentUpload] upload finished response:', response);
+
+    if (!response || !response.data) {
+      throw new Error('服务器响应异常，未能获取附件信息');
+    }
+
     attachment.documentId = response.data.id;
     if (disposed || !attachments.value.some(item => item.id === attachment.id)) {
-      await deleteTemporaryAttachment(props.sessionId, response.data.id).catch(() => undefined);
+      if (response.data.id) {
+        await deleteTemporaryAttachment(props.sessionId, response.data.id).catch(() => undefined);
+      }
       return;
     }
-    attachment.status = response.data.status;
+    attachment.status = response.data.status || 'uploaded';
     attachment.progress = 100;
     emitFiles();
     if (attachment.status !== 'ready' && attachment.status !== 'failed') {
       scheduleStatusPoll(attachment);
     }
   } catch (error: any) {
+    console.error('[AttachmentUpload] upload failed error:', error);
     attachment.status = 'failed';
-    attachment.error = error?.message || t('chat.attachmentUploadFailed');
+    attachment.error = error?.message || error?.error || t('chat.attachmentUploadFailed');
     emitFiles();
   }
 };
@@ -226,12 +253,26 @@ const getFileIcon = (fileName: string): string => {
 };
 
 const statusLabel = (attachment: AttachmentFile): string => {
+  if (attachment.status === 'local') return '待就绪';
   if (attachment.status === 'uploading') return t('chat.attachmentUploading', { progress: attachment.progress || 0 });
   if (attachment.status === 'uploaded' || attachment.status === 'processing') return t('chat.attachmentParsing');
   if (attachment.status === 'ready') return t('chat.attachmentReady');
   if (attachment.status === 'failed') return attachment.error || t('chat.attachmentParseFailed');
   return '';
 };
+
+watch(
+  () => props.sessionId,
+  (newSessionId) => {
+    if (!newSessionId) return;
+    attachments.value.forEach((att) => {
+      if (!att.documentId && att.status !== 'ready' && att.status !== 'uploading') {
+        void uploadAttachment(att);
+      }
+    });
+  },
+  { immediate: true },
+);
 
 onUnmounted(() => {
   disposed = true;
@@ -284,7 +325,7 @@ defineExpose({
         <div class="attachment-preview-info">
           <div class="attachment-preview-name">{{ attachment.name }}</div>
           <div class="attachment-preview-meta">{{ getFileExt(attachment.name) }}&nbsp;·&nbsp;{{ formatFileSize(attachment.size) }}</div>
-          <div v-if="attachment.status !== 'local'" class="attachment-preview-status" :class="`is-${attachment.status}`">
+          <div class="attachment-preview-status" :class="`is-${attachment.status}`">
             <span v-if="attachment.status === 'uploading' || attachment.status === 'uploaded' || attachment.status === 'processing'" class="attachment-status-spinner" />
             {{ statusLabel(attachment) }}
           </div>
