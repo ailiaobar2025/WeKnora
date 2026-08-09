@@ -278,6 +278,7 @@ import { fetchAvailableEmployees } from '@/api/employeeOs'
 import { useTaskStore } from '@/stores/task'
 import { getMessageList } from '@/api/chat/index'
 import { renderChatMarkdown } from '@/utils/chatMarkdownRenderer'
+import { getStatusLabel, getStatusTheme } from '@/utils/taskStatus'
 
 const route = useRoute()
 const router = useRouter()
@@ -423,34 +424,6 @@ const openArtifact = (url: string) => {
 }
 
 const getEmployeeName = (id: string) => employeeNames.value[id] || id
-
-const getStatusLabel = (status: string) => {
-  const map: Record<string, string> = {
-    QUEUED: '排队中',
-    RUNNING: '执行中',
-    NEED_HUMAN_REVIEW: '待审批',
-    NEED_INFO: '待补充资料',
-    SUCCESS: '成功交付',
-    FAILED: '处理异常',
-    CANCELLED: '已取消',
-    TIMEOUT: '超时终止',
-  }
-  return map[status] || status
-}
-
-const getStatusTheme = (status: string): any => {
-  const map: Record<string, string> = {
-    QUEUED: 'default',
-    RUNNING: 'primary',
-    NEED_HUMAN_REVIEW: 'warning',
-    NEED_INFO: 'warning',
-    SUCCESS: 'success',
-    FAILED: 'danger',
-    CANCELLED: 'default',
-    TIMEOUT: 'danger',
-  }
-  return map[status] || 'default'
-}
 
 const getTimelineColor = (status: string) => {
   if (status === 'SUCCESS') return 'success'

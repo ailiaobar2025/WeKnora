@@ -2,11 +2,13 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import {
   createBizTask,
+  fetchDashboardSummary,
   fetchTaskDetail,
   fetchTaskList,
   reviewBizTask,
   type BizTask,
   type CreateTaskPayload,
+  type DashboardSummaryData,
   type HitLReviewPayload,
   type TaskStatus,
 } from '@/api/employeeOs'
@@ -22,7 +24,13 @@ export interface TaskListQuery {
 export const useTaskStore = defineStore('taskStore', () => {
   const tasks = ref<BizTask[]>([])
   const loading = ref(false)
+  const currentPage = ref(1)
+  const pageSize = ref(20)
+  const total = ref(0)
+  const dashboardSummary = ref<DashboardSummaryData | null>(null)
+  const summaryLoading = ref(false)
   let requestSequence = 0
+  let summarySequence = 0
 
   function upsertTask(task: BizTask) {
     const index = tasks.value.findIndex((item) => item.taskId === task.taskId)
@@ -32,16 +40,45 @@ export const useTaskStore = defineStore('taskStore', () => {
 
   async function loadTasks(query: TaskListQuery = {}) {
     const sequence = ++requestSequence
+    const nextPage = query.page ?? currentPage.value
+    const nextLimit = query.limit ?? pageSize.value
     loading.value = true
     try {
-      const response = await fetchTaskList(query)
-      if (sequence === requestSequence) tasks.value = response.data
+      const response = await fetchTaskList({ ...query, page: nextPage, limit: nextLimit })
+      if (sequence === requestSequence) {
+        tasks.value = response.data
+        currentPage.value = response.page || nextPage
+        pageSize.value = response.limit || nextLimit
+        total.value = response.total || 0
+      }
       return response
     } catch (error: unknown) {
-      if (sequence === requestSequence) tasks.value = []
+      if (sequence === requestSequence) {
+        tasks.value = []
+        total.value = 0
+      }
       throw error
     } finally {
       if (sequence === requestSequence) loading.value = false
+    }
+  }
+
+  async function loadDashboardSummary(workspaceId?: string) {
+    const sequence = ++summarySequence
+    summaryLoading.value = true
+    try {
+      const data = await fetchDashboardSummary(workspaceId)
+      if (sequence === summarySequence) {
+        dashboardSummary.value = data
+      }
+      return data
+    } catch (error: unknown) {
+      if (sequence === summarySequence) {
+        dashboardSummary.value = null
+      }
+      throw error
+    } finally {
+      if (sequence === summarySequence) summaryLoading.value = false
     }
   }
 
@@ -97,8 +134,14 @@ export const useTaskStore = defineStore('taskStore', () => {
   return {
     tasks,
     loading,
+    currentPage,
+    pageSize,
+    total,
+    dashboardSummary,
+    summaryLoading,
     pendingCounts,
     loadTasks,
+    loadDashboardSummary,
     loadTask,
     createTask,
     getTaskById,
