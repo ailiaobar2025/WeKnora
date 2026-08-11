@@ -309,6 +309,7 @@ func (s *knowledgeBaseService) buildSearchResult(chunk *types.Chunk,
 	return &types.SearchResult{
 		ID:                      chunk.ID,
 		Content:                 chunk.Content,
+		ContentRevision:         chunk.ContentRevision,
 		KnowledgeID:             chunk.KnowledgeID,
 		ChunkIndex:              chunk.ChunkIndex,
 		KnowledgeTitle:          knowledge.Title,
@@ -334,6 +335,9 @@ func (s *knowledgeBaseService) buildSearchResult(chunk *types.Chunk,
 
 // isSearchableChunk checks if a chunk type should be included in search results.
 func (s *knowledgeBaseService) isSearchableChunk(chunk *types.Chunk) bool {
+	if chunk == nil || !chunk.IsEnabled {
+		return false
+	}
 	// An edit is persisted before its retrieval artifacts are synchronized.
 	// Do not hydrate stale vector hits while that synchronization is pending or
 	// failed. Empty is accepted for legacy rows created before index_status.

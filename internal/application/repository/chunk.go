@@ -171,6 +171,7 @@ func (r *chunkRepository) ListPagedChunksByKnowledgeID(
 	searchField string,
 	sortOrder string,
 	knowledgeType string,
+	isEnabled *bool,
 ) ([]*types.Chunk, int64, error) {
 	var chunks []*types.Chunk
 	var total int64
@@ -181,6 +182,9 @@ func (r *chunkRepository) ListPagedChunksByKnowledgeID(
 			tenantID, knowledgeID, chunkType, []int{int(types.ChunkStatusIndexed), int(types.ChunkStatusDefault)})
 		if len(tagIDs) > 0 {
 			db = db.Where("tag_id IN ?", tagIDs)
+		}
+		if isEnabled != nil {
+			db = db.Where("is_enabled = ?", *isEnabled)
 		}
 		if keyword != "" {
 			like := "%" + keyword + "%"
@@ -731,10 +735,20 @@ func (r *chunkRepository) FindFAQChunkWithDuplicateQuestion(
 		return nil, nil
 	}
 
+	// Every non-deleted status counts, including ChunkStatusStored: a chunk that
+	// is written but not yet indexed is a sibling create still in flight, and
+	// skipping it lets a retried request insert a second row for the same
+	// question. Soft-deleted rows are excluded by GORM.
 	db := r.db.WithContext(ctx).
 		Select("id, metadata").
-		Where("tenant_id = ? AND knowledge_base_id = ? AND chunk_type = ? AND status = ? AND id != ?",
-			tenantID, kbID, types.ChunkTypeFAQ, types.ChunkStatusIndexed, excludeChunkID)
+		Where("tenant_id = ? AND knowledge_base_id = ? AND chunk_type = ? AND status IN (?) AND id != ?",
+			tenantID, kbID, types.ChunkTypeFAQ,
+			[]int{
+				int(types.ChunkStatusDefault),
+				int(types.ChunkStatusStored),
+				int(types.ChunkStatusIndexed),
+			},
+			excludeChunkID)
 
 	switch r.db.Name() {
 	case "mysql":

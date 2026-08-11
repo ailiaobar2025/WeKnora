@@ -52,10 +52,15 @@ type AgentConfig struct {
 	AllowedSkills []string `json:"allowed_skills"` // Skill names whitelist (empty = allow all)
 
 	// Runtime-only fields (not persisted)
-	VLMModelID string `json:"-"` // VLM model ID for tool result image analysis (set from CustomAgent config)
+	VLMModelID      string `json:"-"` // VLM model ID for tool result image analysis (set from CustomAgent config)
+	SandboxConfigID string `json:"-"` // Workspace sandbox config ID for skill execution (set from CustomAgent config)
 	// Per-request @mention pins (runtime only; injected as <must_use> in the user message).
 	PinnedMCPServiceIDs []string `json:"-"`
 	PinnedSkillNames    []string `json:"-"`
+	// SharedAgentReadOnly prevents a shared agent from mutating resources in
+	// its source workspace. It is set from the verified share relation, never
+	// inferred from a client-provided tenant ID.
+	SharedAgentReadOnly bool `json:"-"`
 	// LLM call timeout in seconds (default: 120). Controls the maximum time for a single LLM call.
 	LLMCallTimeout int `json:"llm_call_timeout,omitempty"`
 
