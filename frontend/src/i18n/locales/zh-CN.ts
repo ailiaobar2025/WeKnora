@@ -6097,9 +6097,12 @@ export default {
     }
   },
   menu: {
+    workbench: '工作台',
+    agents: '数字员工',
+    tasks: '任务',
     knowledgeBase: '知识库',
-    agents: '智能体',
     organizations: '共享空间',
+    operations: '企业资产',
     newChat: '新对话',
     settings: '系统设置',
     logout: '退出登录',

@@ -1,8 +1,11 @@
 export default {
   menu: {
+    workbench: 'Workbench',
+    agents: 'Digital Employees',
+    tasks: 'Tasks',
     knowledgeBase: 'Knowledge Base',
-    agents: 'Agents',
     organizations: 'Shared Spaces',
+    operations: 'Assets',
     newChat: 'New Chat',
     settings: 'System Settings',
     logout: 'Logout',
