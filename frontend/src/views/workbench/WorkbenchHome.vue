@@ -62,6 +62,7 @@
 
         <div class="input-bottom-bar">
           <div class="attach-actions">
+            <!-- TODO: 附件上传功能待实现，依赖文件存储与 SOP 模板选择 -->
             <t-button variant="text" size="small" disabled>
               <template #icon><t-icon name="attach" /></template>
               添加附件资料 (SOP / 需求文档)
@@ -313,9 +314,10 @@ import { useTaskStore } from '@/stores/task'
 import { useMenuStore } from '@/stores/menu'
 import { useSettingsStore } from '@/stores/settings'
 import { useChatResourcesStore } from '@/stores/chatResources'
-import { fetchAvailableEmployees, type BizEmployee } from '@/api/employeeOs'
+import { fetchAvailableEmployees, type BizEmployee, type TaskStatus } from '@/api/employeeOs'
 import { createSessions } from '@/api/chat/index'
 import { isAgentRuntimeMode } from '@/utils/agent-mode'
+import { getStatusLabel, getStatusTheme } from '@/utils/taskStatus'
 import {
   buildEmployeeChatEntry,
   buildEmployeeChatSessionDescription,
@@ -334,18 +336,20 @@ const submitting = ref(false)
 const communicating = ref(false)
 const employees = ref<BizEmployee[]>([])
 
+const TERMINAL_STATUSES: readonly TaskStatus[] = ['SUCCESS', 'FAILED', 'CANCELLED', 'TIMEOUT']
+
 const pendingCounts = computed(() => taskStore.pendingCounts)
 const recentTasks = computed(() => taskStore.tasks.slice(0, 6))
 
 const popularEmployees = computed(() => employees.value.slice(0, 6).map((employee) => {
   const employeeTasks = taskStore.tasks.filter((task) => task.employeeId === employee.employeeId)
-  const finished = employeeTasks.filter((task) => ['SUCCESS', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(task.status))
+  const finished = employeeTasks.filter((task) => (TERMINAL_STATUSES as readonly string[]).includes(task.status))
   const succeeded = finished.filter((task) => task.status === 'SUCCESS').length
   return {
     id: employee.employeeId,
     name: employee.name,
     role: employee.description || '数字员工',
-    department: '已发布',
+    department: employee.status === 'PUBLISHED' ? '已发布' : employee.status,
     taskCount: employeeTasks.length,
     successRate: finished.length ? Number(((succeeded / finished.length) * 100).toFixed(1)) : null,
   }
@@ -538,39 +542,12 @@ const openTaskDetail = (taskId: string, tab?: string) => {
 }
 
 const previewArtifact = (art: any) => {
+  // TODO: 替换为内嵌预览组件（含权限校验），当前直接打开 URL 存在安全风险
   window.open(art.url, '_blank', 'noopener,noreferrer')
 }
 
 const getEmployeeName = (id: string) => {
   return employees.value.find((employee) => employee.employeeId === id)?.name || id
-}
-
-const getStatusLabel = (status: string) => {
-  const map: Record<string, string> = {
-    QUEUED: '排队中',
-    RUNNING: '执行中',
-    NEED_HUMAN_REVIEW: '待审批',
-    NEED_INFO: '待补充资料',
-    SUCCESS: '成功交付',
-    FAILED: '处理异常',
-    CANCELLED: '已取消',
-    TIMEOUT: '超时终止',
-  }
-  return map[status] || status
-}
-
-const getStatusTheme = (status: string): any => {
-  const map: Record<string, string> = {
-    QUEUED: 'default',
-    RUNNING: 'primary',
-    NEED_HUMAN_REVIEW: 'warning',
-    NEED_INFO: 'warning',
-    SUCCESS: 'success',
-    FAILED: 'danger',
-    CANCELLED: 'default',
-    TIMEOUT: 'danger',
-  }
-  return map[status] || 'default'
 }
 
 const getArtifactIcon = (type: string) => {
