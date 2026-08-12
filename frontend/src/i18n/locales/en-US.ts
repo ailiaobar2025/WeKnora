@@ -5,7 +5,6 @@ export default {
     tasks: 'Tasks',
     knowledgeBase: 'Knowledge Base',
     organizations: 'Shared Spaces',
-    operations: 'Assets',
     newChat: 'New Chat',
     settings: 'System Settings',
     logout: 'Logout',

@@ -85,7 +85,7 @@
                         <div class="menu_item-box">
                             <div class="menu_icon">
                                 <img class="icon"
-                                    :src="getImgSrc(item.icon == 'zhishiku' ? knowledgeIcon : item.icon == 'agent' ? agentIcon : item.icon == 'organization' ? organizationIcon : item.icon == 'logout' ? logoutIcon : item.icon == 'setting' ? settingIcon : prefixIcon)"
+                                    :src="getImgSrc(resolveMenuIcon(item))"
                                     alt="">
                             </div>
                             <template v-if="!uiStore.sidebarCollapsed">
@@ -401,8 +401,6 @@ const isMenuItemActive = (itemPath: string): boolean => {
             return currentRoute === 'workbench';
         case 'tasks':
             return currentRoute === 'taskList' || currentRoute === 'taskDetail';
-        case 'operations':
-            return currentRoute === 'operations';
         case 'knowledge-bases':
             return currentRoute === 'knowledgeBaseList' ||
                 currentRoute === 'knowledgeBaseDetail' ||
@@ -439,7 +437,7 @@ const getIconActiveState = (itemPath: string) => {
 // 分离上下两部分菜单（使用 visibleMenuArr 以便 lite 模式过滤 logout）
 const topMenuItems = computed<MenuItem[]>(() => {
     return (visibleMenuArr.value as unknown as MenuItem[]).filter((item: MenuItem) =>
-        item.path === 'workbench' || item.path === 'agents' || item.path === 'tasks' || item.path === 'knowledge-bases' || item.path === 'operations' || item.path === 'creatChat'
+        item.path === 'workbench' || item.path === 'agents' || item.path === 'tasks' || item.path === 'knowledge-bases' || item.path === 'creatChat'
     );
 });
 
@@ -1136,6 +1134,21 @@ const gotopage = async (path: string) => {
 
 const getImgSrc = (url: string) => {
     return new URL(`/src/assets/img/${url}`, import.meta.url).href;
+}
+
+const resolveMenuIcon = (item: MenuItem) => {
+    if (item.icon === 'workbench') {
+        return route.name === 'workbench' ? 'integration-green.svg' : 'integration.svg';
+    }
+    if (item.icon === 'task') {
+        return route.name === 'taskList' || route.name === 'taskDetail' ? 'file-add-green.svg' : 'file-add.svg';
+    }
+    if (item.icon === 'zhishiku') return knowledgeIcon.value;
+    if (item.icon === 'agent') return agentIcon.value;
+    if (item.icon === 'organization') return organizationIcon.value;
+    if (item.icon === 'logout') return logoutIcon.value;
+    if (item.icon === 'setting') return settingIcon.value;
+    return prefixIcon.value;
 }
 
 const mouseenteMenu = (path: string) => {

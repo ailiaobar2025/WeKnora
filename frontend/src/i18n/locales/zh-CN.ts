@@ -6104,7 +6104,6 @@ export default {
     tasks: '任务',
     knowledgeBase: '知识库',
     organizations: '共享空间',
-    operations: '企业资产',
     newChat: '新对话',
     settings: '系统设置',
     logout: '退出登录',
